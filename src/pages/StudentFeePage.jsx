@@ -233,16 +233,21 @@ export default function StudentFeePage() {
     [degreeYearsRaw],
   );
 
+  const [autoGenerateAttempted, setAutoGenerateAttempted] = useState(false);
+
   // Prefill "Starting Semester Year" + type from the student's real Adm Session —
-  // only once, and only before any semesters exist, so it never fights a value the
-  // Manager has already typed or generated.
+  // only once. Deliberately NOT gated on semesters.length: the roadmap form is
+  // now always visible (even after some semesters exist, e.g. from a Fee Excel
+  // import), so this must still run in that case — otherwise the form is stuck
+  // showing its raw defaults (current year + Fall), which can coincidentally
+  // look like a real value (e.g. "Fall 2026") while actually ignoring the
+  // student's real Adm Session entirely.
   useEffect(() => {
-    if (admissionAutoFilled || !parsedAdmSession || semesters.length > 0)
-      return;
+    if (admissionAutoFilled || !parsedAdmSession) return;
     setStartYear(parsedAdmSession.year);
     setStartType(parsedAdmSession.type);
     setAdmissionAutoFilled(true);
-  }, [admissionAutoFilled, parsedAdmSession, semesters.length]);
+  }, [admissionAutoFilled, parsedAdmSession]);
 
   // Auto-set Program Duration from the Excel's own duration column when the
   // student doesn't already have one — the Manager can still override it any time
@@ -270,6 +275,55 @@ export default function StudentFeePage() {
     student?.programDurationYears ||
     (student?.semesterSystem === "4-year" ? 4 : 5);
   const programSemesters = programYears * 2;
+
+  const durationKnown = !!(
+    student?.semesterSystem || student?.programDurationYears
+  );
+
+  // TRUE auto-generation: when the student's Admission Excel already told us
+  // their exact starting session (Adm Session, e.g. "Spring 2025") AND their
+  // program duration is known (either set directly, or just auto-applied above
+  // from a Degree Years column), generate their full semester roadmap right
+  // away — no manual "Generate" click needed. Runs once per page load, only
+  // for roles allowed to write (canAddFee), and only while no semesters exist
+  // yet for this student. If Adm Session and/or duration are NOT available,
+  // this simply does nothing and the manual form below stays available for the
+  // Manager to fill in by hand — exactly the "jiska data hai auto, jiska nahi
+  // manual" behavior that was requested.
+  useEffect(() => {
+    if (
+      autoGenerateAttempted ||
+      !canAddFee ||
+      !parsedAdmSession ||
+      !durationKnown ||
+      semesters.length > 0
+    )
+      return;
+    setAutoGenerateAttempted(true);
+    generateSemesters({
+      studentId: id,
+      startYear: parsedAdmSession.year,
+      startType: parsedAdmSession.type,
+    })
+      .unwrap()
+      .then(() =>
+        toast.success(
+          `Semester roadmap auto-generated from Adm Session (${parsedAdmSession.type} ${parsedAdmSession.year})`,
+        ),
+      )
+      .catch(() => {
+        // Silent fail is fine here — the manual form below still lets the
+        // Manager generate it by hand if the automatic attempt didn't work.
+      });
+  }, [
+    autoGenerateAttempted,
+    canAddFee,
+    parsedAdmSession,
+    durationKnown,
+    semesters.length,
+    generateSemesters,
+    id,
+  ]);
 
   // --- Compute overall totals from feeData ---
   const overallStats = useMemo(() => {
@@ -435,25 +489,47 @@ export default function StudentFeePage() {
           />
         </div>
         <button className="btn-primary" onClick={handleGenerate}>
-          {semesters.length > 0 ? "Generate / Fill Semester Roadmap" : "Generate Semesters"}{" "}
+          {semesters.length > 0
+            ? "Generate / Fill Semester Roadmap"
+            : "Generate Semesters"}{" "}
           {student?.semesterSystem || student?.programDurationYears
             ? `(${programYears}-year, ${programSemesters} semesters)`
             : "(set program duration first)"}
         </button>
+        {parsedAdmSession && durationKnown && semesters.length === 0 && (
+          <p className="text-xs text-green-600 w-full">
+            Adm Session ("{admSessionRaw}") aur Program Duration dono mil gaye —
+            roadmap khud-b-khud generate ho raha hai, koi click nahi karna
+            padega.
+          </p>
+        )}
+        {parsedAdmSession && !durationKnown && semesters.length === 0 && (
+          <p className="text-xs text-amber-600 w-full">
+            Adm Session ("{admSessionRaw}") mil gaya, lekin Program Duration
+            pata nahi (Excel mein "Degree Years" column nahi tha) — is liye
+            auto-generate nahi hua. Neeche se manually generate karo, ya pehle
+            student ki Program Duration set kar do.
+          </p>
+        )}
+        {!parsedAdmSession && semesters.length === 0 && (
+          <p className="text-xs text-gray-400 w-full">
+            Is student ke record mein Adm Session nahi mila — Starting Semester
+            khud select karke manually Generate karo.
+          </p>
+        )}
         {parsedAdmSession && (
           <p className="text-xs text-gray-400 w-full">
-            Excel ki Adm Session ("{admSessionRaw}") se{" "}
-            {parsedAdmSession.type} {parsedAdmSession.year} auto-fill hui hai
-            — chahe to badal sakte ho.
+            Excel ki Adm Session ("{admSessionRaw}") se {parsedAdmSession.type}{" "}
+            {parsedAdmSession.year} auto-fill hui hai — chahe to badal sakte ho.
           </p>
         )}
         {semesters.length > 0 && (
           <p className="text-xs text-gray-400 w-full">
-            Student jis semester/year se shuru hua tha wo select karke
-            Generate dabao — poora {programSemesters}-semester roadmap ban
-            jayega. Jo semester already maujood hai (jaise abhi ka imported
-            fee record) uska data safe rahega, sirf uski position/naya label
-            match hone par reuse hoga.
+            Student jis semester/year se shuru hua tha wo select karke Generate
+            dabao — poora {programSemesters}-semester roadmap ban jayega. Jo
+            semester already maujood hai (jaise abhi ka imported fee record)
+            uska data safe rahega, sirf uski position/naya label match hone par
+            reuse hoga.
           </p>
         )}
       </div>

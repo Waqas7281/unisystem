@@ -1,4 +1,10 @@
-export default function Pagination({ currentPage, totalPages, onPageChange, totalItems, pageSize }) {
+export default function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+  totalItems,
+  pageSize,
+}) {
   if (totalPages <= 1) return null;
 
   const start = (currentPage - 1) * pageSize + 1;
@@ -29,7 +35,10 @@ export default function Pagination({ currentPage, totalPages, onPageChange, tota
 
         {from > 1 && (
           <>
-            <button className="btn-secondary px-3 py-1.5 text-xs" onClick={() => onPageChange(1)}>
+            <button
+              className="btn-secondary px-3 py-1.5 text-xs"
+              onClick={() => onPageChange(1)}
+            >
               1
             </button>
             {from > 2 && <span className="px-1 text-gray-400 text-xs">…</span>}
@@ -42,8 +51,8 @@ export default function Pagination({ currentPage, totalPages, onPageChange, tota
             onClick={() => onPageChange(p)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
               p === currentPage
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
+                ? "bg-primary-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
             }`}
           >
             {p}
@@ -52,8 +61,13 @@ export default function Pagination({ currentPage, totalPages, onPageChange, tota
 
         {to < totalPages && (
           <>
-            {to < totalPages - 1 && <span className="px-1 text-gray-400 text-xs">…</span>}
-            <button className="btn-secondary px-3 py-1.5 text-xs" onClick={() => onPageChange(totalPages)}>
+            {to < totalPages - 1 && (
+              <span className="px-1 text-gray-400 text-xs">…</span>
+            )}
+            <button
+              className="btn-secondary px-3 py-1.5 text-xs"
+              onClick={() => onPageChange(totalPages)}
+            >
               {totalPages}
             </button>
           </>

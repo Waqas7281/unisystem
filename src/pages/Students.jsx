@@ -175,8 +175,14 @@ export default function Students() {
   const { data: students = [], isLoading } =
     useGetStudentsQuery(studentsQueryParams);
 
-  const { page, setPage, totalPages, totalItems, pageSize, paginatedItems: paginatedStudents } =
-    usePagination(students, 10);
+  const {
+    page,
+    setPage,
+    totalPages,
+    totalItems,
+    pageSize,
+    paginatedItems: paginatedStudents,
+  } = usePagination(students, 10);
 
   // Every column that showed up in an imported Admission Excel and isn't one of
   // the fixed fields below (Name, CNIC, Program, etc.) — rendered as extra table
