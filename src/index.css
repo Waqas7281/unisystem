@@ -36,3 +36,21 @@ table.data-table th {
 table.data-table td {
   @apply px-3 py-2 border-t border-gray-100 dark:border-gray-800;
 }
+
+
+/* Clearance Slip printing: hide the app chrome, show only the slip */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #clearance-slip-printable,
+  #clearance-slip-printable * {
+    visibility: visible;
+  }
+  #clearance-slip-printable {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+  }
+}
