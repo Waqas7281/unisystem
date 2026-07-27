@@ -650,7 +650,7 @@ export default function AcademicRecords() {
                 {!isLoading && students.length === 0 && (
                   <tr>
                     <td colSpan={7} className="text-center text-gray-400 py-6">
-                      Koi student nahi mila
+                      No student Found
                     </td>
                   </tr>
                 )}
