@@ -2,41 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap');
+
 body {
-  @apply bg-gray-50 text-gray-900 dark:bg-black dark:text-gray-100 transition-colors duration-200;
+  @apply bg-gray-50 text-gray-900;
 }
 
 .card {
-  @apply bg-white rounded-xl shadow-sm border border-gray-100 p-5 dark:bg-gray-900 dark:border-gray-800;
+  @apply bg-white rounded-xl shadow-sm border border-gray-100 p-5;
 }
 
 .btn {
   @apply px-4 py-2 rounded-lg font-medium transition-colors text-sm;
 }
 .btn-primary {
-  @apply btn bg-primary-600 text-white hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600;
+  @apply btn bg-primary-600 text-white hover:bg-primary-700;
 }
 .btn-secondary {
-  @apply btn bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700;
+  @apply btn bg-gray-100 text-gray-700 hover:bg-gray-200;
 }
 .btn-danger {
-  @apply btn bg-red-600 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600;
+  @apply btn bg-red-600 text-white hover:bg-red-700;
 }
 
 .input {
-  @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500;
+  @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
 }
 
 table.data-table {
   @apply w-full text-sm border-collapse;
 }
 table.data-table th {
-  @apply text-left bg-gray-100 px-3 py-2 font-semibold text-gray-600 sticky top-0 dark:bg-gray-800 dark:text-gray-300;
+  @apply text-left bg-gray-100 px-3 py-2 font-semibold text-gray-600 sticky top-0;
 }
 table.data-table td {
-  @apply px-3 py-2 border-t border-gray-100 dark:border-gray-800;
+  @apply px-3 py-2 border-t border-gray-100;
 }
-
 
 /* Clearance Slip printing: hide the app chrome, show only the slip */
 @media print {
@@ -53,4 +54,159 @@ table.data-table td {
     left: 0;
     width: 100% !important;
   }
+}
+
+
+
+/* ---------- Login page: seal medallion + glass card ---------- */
+
+.login-scene {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  background:
+    radial-gradient(60% 55% at 18% 20%, rgba(217, 164, 65, 0.16), transparent 60%),
+    radial-gradient(50% 45% at 85% 78%, rgba(240, 168, 173, 0.14), transparent 60%),
+    linear-gradient(160deg, #14163a 0%, #211a45 48%, #341f52 100%);
+}
+
+.login-display {
+  font-family: 'Fraunces', ui-serif, Georgia, serif;
+}
+
+.login-glass {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow:
+    0 30px 60px -20px rgba(10, 6, 30, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.login-input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #f6f1e7;
+}
+.login-input::placeholder {
+  color: rgba(246, 241, 231, 0.38);
+}
+.login-input:focus {
+  outline: none;
+  border-color: rgba(217, 164, 65, 0.65);
+  box-shadow: 0 0 0 3px rgba(217, 164, 65, 0.18);
+}
+
+.login-role-pill {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(246, 241, 231, 0.72);
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.2s ease;
+}
+.login-role-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f6f1e7;
+}
+.login-role-pill[data-active="true"] {
+  background: linear-gradient(135deg, #d9a441, #c47e3f);
+  border-color: transparent;
+  color: #1c1408;
+  font-weight: 600;
+  box-shadow: 0 6px 16px -6px rgba(217, 164, 65, 0.6);
+}
+
+.login-cta {
+  background: linear-gradient(135deg, #e3b45a, #c47e3f);
+  color: #1c1408;
+  box-shadow:
+    0 12px 24px -10px rgba(217, 164, 65, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+.login-cta:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow:
+    0 16px 30px -10px rgba(217, 164, 65, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.login-cta:active:not(:disabled) {
+  transform: translateY(0px) scale(0.99);
+}
+
+/* 3D tilting seal medallion — layered rings + emblem, responds to mouse move
+   via --rx/--ry custom properties set from JS, plus a gentle idle float. */
+.medallion-stage {
+  perspective: 1200px;
+}
+.medallion {
+  transform-style: preserve-3d;
+  transform: rotateX(var(--ry, 0deg)) rotateY(var(--rx, 0deg));
+  transition: transform 0.25s ease-out;
+  animation: medallion-float 6s ease-in-out infinite;
+}
+@keyframes medallion-float {
+  0%, 100% { translate: 0 0px; }
+  50% { translate: 0 -14px; }
+}
+.medallion-ring-outer {
+  background: conic-gradient(from 180deg, #e3b45a, #8a5a2b, #e3b45a, #f3cd85, #e3b45a);
+  box-shadow: 0 40px 70px -25px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08);
+}
+.medallion-ring-inner {
+  background: radial-gradient(circle at 35% 30%, #2c2050, #171334 70%);
+  box-shadow: inset 0 6px 18px rgba(0,0,0,0.55), inset 0 -4px 10px rgba(255,255,255,0.06);
+}
+.medallion-glyph {
+  color: #eecb87;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
+}
+.medallion-shine {
+  background: linear-gradient(135deg, rgba(255,255,255,0.35), transparent 55%);
+  mix-blend-mode: overlay;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .medallion {
+    animation: none;
+    transition: none;
+  }
+
+
+  /* Cute little "RR" signature badge on the login hero */
+/* Cute little "RR" signature badge on the login hero */
+.rr-badge {
+  background: linear-gradient(135deg, rgba(240, 168, 173, 0.95), rgba(217, 164, 65, 0.95));
+  color: #2a1638;
+  letter-spacing: 0.08em;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow:
+    0 10px 24px -8px rgba(217, 164, 65, 0.5),
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transform: rotate(4deg);
+  animation: rr-wiggle 5s ease-in-out infinite;
+}
+.rr-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #2a1638;
+  box-shadow: 0 0 0 0 rgba(42, 22, 56, 0.5);
+  animation: rr-pulse 2.2s ease-in-out infinite;
+}
+@keyframes rr-wiggle {
+  0%, 100% { transform: rotate(4deg) translateY(0); }
+  50% { transform: rotate(1deg) translateY(-4px); }
+}
+@keyframes rr-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(42, 22, 56, 0.45); }
+  70% { box-shadow: 0 0 0 6px rgba(42, 22, 56, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(42, 22, 56, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rr-badge,
+  .rr-badge-dot {
+    animation: none;
+  }
+}
 }
