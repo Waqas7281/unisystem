@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "react-toastify";
 import {
   useLazyGetStudentByEnrollmentQuery,
@@ -19,6 +19,65 @@ const ACTION_TYPES = [
   "Custom",
 ];
 
+const MAX_PHOTO_BYTES = 600 * 1024; // 600KB cap, matches backend check
+
+// Loads a File into an <img>, draws it onto a canvas, and re-exports as JPEG,
+// shrinking quality first (then dimensions) step by step until the encoded
+// size is under MAX_PHOTO_BYTES. Works for any photo straight from a phone
+// camera (which are often several MB) without needing any extra library.
+function compressImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read the file"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Could not read the image"));
+      img.onload = () => {
+        let { width, height } = img;
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        const tryEncode = (w, h, quality) => {
+          canvas.width = w;
+          canvas.height = h;
+          ctx.clearRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          return canvas.toDataURL("image/jpeg", quality);
+        };
+
+        // Higher starting dimension since target is 600KB now — keeps more
+        // detail before we ever need to shrink the canvas itself.
+        let maxDim = 2000;
+        let quality = 0.9;
+        let dataUrl = "";
+
+        for (let attempt = 0; attempt < 14; attempt++) {
+          const scale = Math.min(1, maxDim / Math.max(width, height));
+          const w = Math.round(width * scale);
+          const h = Math.round(height * scale);
+          dataUrl = tryEncode(w, h, quality);
+
+          const approxBytes = Math.floor((dataUrl.length * 3) / 4);
+          if (approxBytes <= MAX_PHOTO_BYTES) break;
+
+          if (quality > 0.6) {
+            // Drop quality first — sharper result than shrinking dimensions.
+            quality -= 0.05;
+          } else {
+            // Quality floor hit, now shrink dimensions and reset quality.
+            maxDim = Math.round(maxDim * 0.85);
+            quality = 0.75;
+          }
+        }
+
+        resolve(dataUrl);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function CreateApplication() {
   const [enrollmentNumber, setEnrollmentNumber] = useState("");
   const [triggerLookup, { data: student, isFetching, isError }] =
@@ -38,11 +97,47 @@ export default function CreateApplication() {
     amount: "",
   });
 
+  const [photoPreview, setPhotoPreview] = useState(null); // data URL for <img> preview
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
   const handleLookup = (e) => {
     e.preventDefault();
     if (!enrollmentNumber.trim()) return;
     setSemesterId("");
     triggerLookup(enrollmentNumber.trim());
+  };
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file");
+      return;
+    }
+    setPhotoUploading(true);
+    try {
+      const compressed = await compressImageFile(file);
+      const approxKb = Math.round((compressed.length * 3) / 4 / 1024);
+      if (approxKb > 600) {
+        toast.error(
+          "Could not compress this image under 600KB — try a different photo",
+        );
+        setPhotoPreview(null);
+      } else {
+        setPhotoPreview(compressed);
+        toast.success(`Photo attached (~${approxKb}KB)`);
+      }
+    } catch {
+      toast.error("Failed to process the image");
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
+  const removePhoto = () => {
+    setPhotoPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = async (e) => {
@@ -57,6 +152,9 @@ export default function CreateApplication() {
         enrollmentNumber: student.enrollmentNumber,
         semesterId,
         ...form,
+        ...(photoPreview
+          ? { photoBase64: photoPreview, photoMimeType: "image/jpeg" }
+          : {}),
       }).unwrap();
 
       if (addFineNow && fineForm.amount) {
@@ -84,6 +182,7 @@ export default function CreateApplication() {
         description: "",
         amount: "",
       });
+      removePhoto();
     } catch (err) {
       toast.error(err?.data?.message || "Failed to create application");
     }
@@ -171,6 +270,42 @@ export default function CreateApplication() {
                 setForm({ ...form, description: e.target.value })
               }
             />
+
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">
+                Proof Photo (optional — auto-compressed to under 600KB)
+              </label>
+              {!photoPreview && (
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="input"
+                  disabled={photoUploading}
+                  onChange={handlePhotoChange}
+                />
+              )}
+              {photoUploading && (
+                <p className="text-xs text-gray-400 mt-1">Processing photo…</p>
+              )}
+              {photoPreview && (
+                <div className="mt-2 flex items-start gap-3">
+                  <img
+                    src={photoPreview}
+                    alt="Proof preview"
+                    className="w-28 h-28 object-cover rounded-lg border border-gray-200"
+                  />
+                  <button
+                    type="button"
+                    className="btn-secondary text-xs"
+                    onClick={removePhoto}
+                  >
+                    Remove Photo
+                  </button>
+                </div>
+              )}
+            </div>
 
             <label className="flex items-center gap-2 text-sm">
               <input

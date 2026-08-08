@@ -121,7 +121,9 @@ export default function App() {
         <Route
           path="/create-application"
           element={
-            <ProtectedRoute allowedRoles={["DataEntry"]}>
+            <ProtectedRoute
+              allowedRoles={["DataEntry", "Manager", "Registrar"]}
+            >
               <CreateApplication />
             </ProtectedRoute>
           }

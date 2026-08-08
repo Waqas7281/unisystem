@@ -147,6 +147,32 @@ export default function ApplicationDetail() {
             <p className="font-medium">{application.createdBy?.name}</p>
           </div>
         </div>
+        {application.photoData ? (
+          <div className="mt-4">
+            <p className="text-xs text-gray-400 mb-1">Proof Photo</p>
+            <a
+              href={
+                "data:" +
+                (application.photoMimeType || "image/jpeg") +
+                ";base64," +
+                application.photoData
+              }
+              target="_blank"
+              rel="noreferrer"
+            >
+              <img
+                src={
+                  "data:" +
+                  (application.photoMimeType || "image/jpeg") +
+                  ";base64," +
+                  application.photoData
+                }
+                alt="Application proof"
+                className="w-40 h-40 object-cover rounded-lg border border-gray-200 hover:opacity-90"
+              />
+            </a>
+          </div>
+        ) : null}
       </div>
 
       {user?.role === "Manager" &&
