@@ -19,12 +19,12 @@ const ACTION_TYPES = [
   "Custom",
 ];
 
-const MAX_PHOTO_BYTES = 600 * 1024; // 600KB cap, matches backend check
+const MAX_PHOTO_BYTES = 800 * 1024; // 800KB cap, matches backend check
 
 // Loads a File into an <img>, draws it onto a canvas, and re-exports as JPEG,
-// shrinking quality first (then dimensions) step by step until the encoded
-// size is under MAX_PHOTO_BYTES. Works for any photo straight from a phone
-// camera (which are often several MB) without needing any extra library.
+// shrinking dimensions and/or quality step by step until the encoded size is
+// under MAX_PHOTO_BYTES. Works for any photo straight from a phone camera
+// (which are often several MB) without needing any extra library.
 function compressImageFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -45,13 +45,14 @@ function compressImageFile(file) {
           return canvas.toDataURL("image/jpeg", quality);
         };
 
-        // Higher starting dimension since target is 600KB now — keeps more
-        // detail before we ever need to shrink the canvas itself.
+        // Start at a sensible max dimension (keeps big camera photos from
+        // being pointlessly huge) and step quality down; if still too big
+        // after quality bottoms out, shrink dimensions and try again.
         let maxDim = 2000;
         let quality = 0.9;
         let dataUrl = "";
 
-        for (let attempt = 0; attempt < 14; attempt++) {
+        for (let attempt = 0; attempt < 12; attempt++) {
           const scale = Math.min(1, maxDim / Math.max(width, height));
           const w = Math.round(width * scale);
           const h = Math.round(height * scale);
@@ -60,13 +61,11 @@ function compressImageFile(file) {
           const approxBytes = Math.floor((dataUrl.length * 3) / 4);
           if (approxBytes <= MAX_PHOTO_BYTES) break;
 
-          if (quality > 0.6) {
-            // Drop quality first — sharper result than shrinking dimensions.
-            quality -= 0.05;
+          if (quality > 0.5) {
+            quality -= 0.1;
           } else {
-            // Quality floor hit, now shrink dimensions and reset quality.
-            maxDim = Math.round(maxDim * 0.85);
-            quality = 0.75;
+            maxDim = Math.round(maxDim * 0.8);
+            quality = 0.7;
           }
         }
 
@@ -88,7 +87,7 @@ export default function CreateApplication() {
   const [createApplication, { isLoading }] = useCreateApplicationMutation();
   const [addAction] = useAddApplicationActionMutation();
   const [semesterId, setSemesterId] = useState("");
-  const [form, setForm] = useState({ title: "", description: "" });
+  const [form, setForm] = useState({ title: "" });
   const [addFineNow, setAddFineNow] = useState(false);
   const [fineForm, setFineForm] = useState({
     actionType: "Fine",
@@ -119,9 +118,9 @@ export default function CreateApplication() {
     try {
       const compressed = await compressImageFile(file);
       const approxKb = Math.round((compressed.length * 3) / 4 / 1024);
-      if (approxKb > 600) {
+      if (approxKb > 800) {
         toast.error(
-          "Could not compress this image under 600KB — try a different photo",
+          "Could not compress this image under 800KB — try a different photo",
         );
         setPhotoPreview(null);
       } else {
@@ -172,7 +171,7 @@ export default function CreateApplication() {
         toast.success("Application created with status Pending");
       }
 
-      setForm({ title: "", description: "" });
+      setForm({ title: "" });
       setEnrollmentNumber("");
       setSemesterId("");
       setAddFineNow(false);
@@ -220,6 +219,9 @@ export default function CreateApplication() {
               <b>Enrollment #:</b> {student.enrollmentNumber}
             </p>
             <p>
+              <b>Department:</b> {student.program || "—"}
+            </p>
+            <p>
               <b>Email:</b> {student.email || "—"}
             </p>
           </div>
@@ -262,18 +264,10 @@ export default function CreateApplication() {
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
             />
-            <textarea
-              className="input"
-              placeholder="Description"
-              value={form.description}
-              onChange={(e) =>
-                setForm({ ...form, description: e.target.value })
-              }
-            />
 
             <div>
               <label className="text-xs text-gray-500 block mb-1">
-                Proof Photo (optional — auto-compressed to under 600KB)
+                Proof Photo (optional — auto-compressed to under 800KB)
               </label>
               {!photoPreview && (
                 <input

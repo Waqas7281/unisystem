@@ -89,6 +89,7 @@ export default function App() {
                 "AccountsManager",
                 "StudentAffair",
                 "Registrar",
+                "DataEntry",
               ]}
             >
               <Applications />
@@ -104,6 +105,7 @@ export default function App() {
                 "AccountsManager",
                 "StudentAffair",
                 "Registrar",
+                "DataEntry",
               ]}
             >
               <ApplicationDetail />

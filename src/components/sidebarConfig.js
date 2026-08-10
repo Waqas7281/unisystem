@@ -28,7 +28,10 @@ export const SIDEBAR_CONFIG = {
     { label: "Students", path: "/students" },
     { label: "Scan Slip", path: "/clearance-scanner" },
   ],
-  DataEntry: [{ label: "Create Application", path: "/create-application" }],
+  DataEntry: [
+    { label: "Create Application", path: "/create-application" },
+    { label: "My Applications", path: "/applications" },
+  ],
   RecordRoom: [{ label: "Academic Records", path: "/academic-records" }],
   // Registrar can view every page in the project.
   Registrar: [

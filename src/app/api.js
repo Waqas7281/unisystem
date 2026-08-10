@@ -219,7 +219,13 @@ export const api = createApi({
 
     // ---- Applications ----
     getApplications: builder.query({
-      query: (search) => `/applications${search ? `?search=${search}` : ""}`,
+      query: ({ search, mine } = {}) => {
+        const params = new URLSearchParams();
+        if (search) params.set("search", search);
+        if (mine) params.set("mine", "true");
+        const qs = params.toString();
+        return `/applications${qs ? `?${qs}` : ""}`;
+      },
       providesTags: ["Applications"],
     }),
     getPendingApplications: builder.query({
