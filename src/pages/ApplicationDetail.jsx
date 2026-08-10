@@ -1,15 +1,10 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useRef, useState } from "react";
 import { toast } from "react-toastify";
 import {
-  useGetApplicationQuery,
+  useLazyGetStudentByEnrollmentQuery,
+  useGetSemestersQuery,
+  useCreateApplicationMutation,
   useAddApplicationActionMutation,
-  useAssignApplicationMutation,
-  useMarkApplicationDoneMutation,
-  useDecideApplicationMutation,
-  useGetUsersQuery,
-  useGetStudentFeesQuery,
 } from "../app/api";
 
 const ACTION_TYPES = [
@@ -21,363 +16,354 @@ const ACTION_TYPES = [
   "Bar",
   "Cancel",
   "DropScholarship",
-  "Attendance fine",
+  "Custom",
 ];
 
-export default function ApplicationDetail() {
-  const { id } = useParams();
-  const user = useSelector((state) => state.auth.user);
-  const { data, isLoading } = useGetApplicationQuery(id);
-  const { data: feeData } = useGetStudentFeesQuery(
-    data?.application?.student?.id,
-    { skip: !data?.application?.student?.id },
-  );
-  const { data: users = [] } = useGetUsersQuery(undefined, {
-    skip: user?.role !== "Manager",
-  });
-  const [addAction] = useAddApplicationActionMutation();
-  const [assign] = useAssignApplicationMutation();
-  const [markDone] = useMarkApplicationDoneMutation();
-  const [decide] = useDecideApplicationMutation();
+const MAX_PHOTO_BYTES = 800 * 1024; // 800KB cap, matches backend check
 
-  const [actionForm, setActionForm] = useState({
+// Loads a File into an <img>, draws it onto a canvas, and re-exports as JPEG,
+// shrinking dimensions and/or quality step by step until the encoded size is
+// under MAX_PHOTO_BYTES. Works for any photo straight from a phone camera
+// (which are often several MB) without needing any extra library.
+function compressImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read the file"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Could not read the image"));
+      img.onload = () => {
+        let { width, height } = img;
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        const tryEncode = (w, h, quality) => {
+          canvas.width = w;
+          canvas.height = h;
+          ctx.clearRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          return canvas.toDataURL("image/jpeg", quality);
+        };
+
+        // Start at a sensible max dimension (keeps big camera photos from
+        // being pointlessly huge) and step quality down; if still too big
+        // after quality bottoms out, shrink dimensions and try again.
+        let maxDim = 2000;
+        let quality = 0.9;
+        let dataUrl = "";
+
+        for (let attempt = 0; attempt < 12; attempt++) {
+          const scale = Math.min(1, maxDim / Math.max(width, height));
+          const w = Math.round(width * scale);
+          const h = Math.round(height * scale);
+          dataUrl = tryEncode(w, h, quality);
+
+          const approxBytes = Math.floor((dataUrl.length * 3) / 4);
+          if (approxBytes <= MAX_PHOTO_BYTES) break;
+
+          if (quality > 0.5) {
+            quality -= 0.1;
+          } else {
+            maxDim = Math.round(maxDim * 0.8);
+            quality = 0.7;
+          }
+        }
+
+        resolve(dataUrl);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+export default function CreateApplication() {
+  const [enrollmentNumber, setEnrollmentNumber] = useState("");
+  const [triggerLookup, { data: student, isFetching, isError }] =
+    useLazyGetStudentByEnrollmentQuery();
+  const { data: semesters = [] } = useGetSemestersQuery(student?.id, {
+    skip: !student?.id,
+  });
+  const [createApplication, { isLoading }] = useCreateApplicationMutation();
+  const [addAction] = useAddApplicationActionMutation();
+  const [semesterId, setSemesterId] = useState("");
+  const [form, setForm] = useState({ title: "" });
+  const [addFineNow, setAddFineNow] = useState(false);
+  const [fineForm, setFineForm] = useState({
     actionType: "Fine",
     title: "",
     description: "",
     amount: "",
   });
-  const [assignTo, setAssignTo] = useState("");
-  const [reason, setReason] = useState("");
 
-  const isReviewer = ["Manager", "AccountsManager", "StudentAffair"].includes(
-    user?.role,
-  );
-  const isDataEntry = user?.role === "DataEntry";
+  const [photoPreview, setPhotoPreview] = useState(null); // data URL for <img> preview
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
-  if (isLoading) return <p className="text-gray-400 text-sm">Loading…</p>;
-  if (!data) return null;
-  const { application, actions } = data;
-  const canAddAction = isReviewer || (isDataEntry && !application.locked);
-
-  const handleAddAction = async (e) => {
+  const handleLookup = (e) => {
     e.preventDefault();
+    if (!enrollmentNumber.trim()) return;
+    setSemesterId("");
+    triggerLookup(enrollmentNumber.trim());
+  };
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file");
+      return;
+    }
+    setPhotoUploading(true);
     try {
-      await addAction({
-        id,
-        actionType: actionForm.actionType,
-        title: actionForm.title || undefined,
-        description: actionForm.description || undefined,
-        amount: actionForm.amount ? Number(actionForm.amount) : undefined,
+      const compressed = await compressImageFile(file);
+      const approxKb = Math.round((compressed.length * 3) / 4 / 1024);
+      if (approxKb > 800) {
+        toast.error(
+          "Could not compress this image under 800KB — try a different photo",
+        );
+        setPhotoPreview(null);
+      } else {
+        setPhotoPreview(compressed);
+        toast.success(`Photo attached (~${approxKb}KB)`);
+      }
+    } catch {
+      toast.error("Failed to process the image");
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
+  const removePhoto = () => {
+    setPhotoPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!student) return toast.error("Look up a valid student first");
+    if (!semesterId)
+      return toast.error("Select the semester this application is for");
+    if (addFineNow && !fineForm.amount)
+      return toast.error('Enter a fine amount, or turn off "Add fine now"');
+    try {
+      const app = await createApplication({
+        enrollmentNumber: student.enrollmentNumber,
+        semesterId,
+        ...form,
+        ...(photoPreview
+          ? { photoBase64: photoPreview, photoMimeType: "image/jpeg" }
+          : {}),
       }).unwrap();
-      toast.success(
-        actionForm.amount
-          ? `Fine of Rs ${actionForm.amount} added and posted to the fee ledger`
-          : "Action entry added",
-      );
-      setActionForm({
+
+      if (addFineNow && fineForm.amount) {
+        await addAction({
+          id: app.id,
+          actionType: fineForm.actionType,
+          title: fineForm.title || undefined,
+          description: fineForm.description || undefined,
+          amount: Number(fineForm.amount),
+        }).unwrap();
+        toast.success(
+          `Application created and fine of Rs ${fineForm.amount} posted to the fee ledger`,
+        );
+      } else {
+        toast.success("Application created with status Pending");
+      }
+
+      setForm({ title: "" });
+      setEnrollmentNumber("");
+      setSemesterId("");
+      setAddFineNow(false);
+      setFineForm({
         actionType: "Fine",
         title: "",
         description: "",
         amount: "",
       });
+      removePhoto();
     } catch (err) {
-      toast.error(err?.data?.message || "Failed to add action");
-    }
-  };
-
-  const handleAssign = async () => {
-    if (!assignTo) return;
-    const targetUser = users.find((u) => u.id === assignTo);
-    try {
-      await assign({
-        id,
-        assignedToUserId: assignTo,
-        assignedRole: targetUser?.role,
-      }).unwrap();
-      toast.success(`Assigned to ${targetUser?.name}`);
-    } catch {
-      toast.error("Failed to assign");
-    }
-  };
-
-  const handleDecide = async (decision) => {
-    try {
-      await decide({ id, decision, reason: reason || undefined }).unwrap();
-      toast.success(
-        `Application ${decision}. Student has been notified by email.`,
-      );
-    } catch (err) {
-      toast.error(err?.data?.message || "Failed to record decision");
+      toast.error(err?.data?.message || "Failed to create application");
     }
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 max-w-xl">
+      <h1 className="text-xl font-bold">Create Application</h1>
+
       <div className="card">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h1 className="text-xl font-bold">{application.title}</h1>
-            <p className="text-sm text-gray-500">{application.description}</p>
-          </div>
-          <span className="text-xs px-3 py-1 rounded-full bg-primary-100 text-primary-700">
-            {application.status}
-          </span>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 text-sm">
-          <div>
-            <p className="text-gray-400">Roll Number</p>
-            <p className="font-medium">
-              {application.student?.enrollmentNumber}
+        <h2 className="font-semibold mb-3">Step 1 — Find Student</h2>
+        <form onSubmit={handleLookup} className="flex gap-2">
+          <input
+            className="input"
+            placeholder="Roll Number / Enrollment Number"
+            value={enrollmentNumber}
+            onChange={(e) => setEnrollmentNumber(e.target.value)}
+          />
+          <button className="btn-primary" disabled={isFetching}>
+            {isFetching ? "Searching…" : "Search"}
+          </button>
+        </form>
+        {isError && (
+          <p className="text-sm text-red-600 mt-2">
+            Student not found — application creation blocked. Ask
+            Manager/Accounts Manager to add the student first.
+          </p>
+        )}
+        {student && (
+          <div className="mt-3 bg-primary-50 rounded-lg p-3 text-sm">
+            <p>
+              <b>Name:</b> {student.name}
+            </p>
+            <p>
+              <b>Enrollment #:</b> {student.enrollmentNumber}
+            </p>
+            <p>
+              <b>Department:</b> {student.program || "—"}
+            </p>
+            <p>
+              <b>Email:</b> {student.email || "—"}
             </p>
           </div>
-          <div>
-            <p className="text-gray-400">Name</p>
-            <p className="font-medium">{application.student?.name}</p>
-          </div>
-          <div>
-            <p className="text-gray-400">Semester</p>
-            <p className="font-medium">{application.semester?.label || "—"}</p>
-          </div>
-          <div>
-            <p className="text-gray-400">Email</p>
-            <p className="font-medium">{application.student?.email || "—"}</p>
-          </div>
-          <div>
-            <p className="text-gray-400">Created By</p>
-            <p className="font-medium">{application.createdBy?.name}</p>
-          </div>
-        </div>
-        {application.photoData ? (
-          <div className="mt-4">
-            <p className="text-xs text-gray-400 mb-1">Proof Photo</p>
-            <a
-              href={
-                "data:" +
-                (application.photoMimeType || "image/jpeg") +
-                ";base64," +
-                application.photoData
-              }
-              target="_blank"
-              rel="noreferrer"
-            >
-              <img
-                src={
-                  "data:" +
-                  (application.photoMimeType || "image/jpeg") +
-                  ";base64," +
-                  application.photoData
-                }
-                alt="Application proof"
-                className="w-40 h-40 object-cover rounded-lg border border-gray-200 hover:opacity-90"
-              />
-            </a>
-          </div>
-        ) : null}
+        )}
       </div>
 
-      {user?.role === "Manager" &&
-        application.status !== "Accepted" &&
-        application.status !== "Rejected" && (
-          <div className="card">
-            <h2 className="font-semibold mb-3">Assign & Review</h2>
-            <div className="flex flex-wrap gap-2 items-end">
-              <select
-                className="input max-w-xs"
-                value={assignTo}
-                onChange={(e) => setAssignTo(e.target.value)}
-              >
-                <option value="">Select person to assign…</option>
-                {users
-                  .filter((u) => u.id !== application.createdBy?.id)
-                  .map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name} ({u.role})
-                    </option>
-                  ))}
-              </select>
-              <button className="btn-primary" onClick={handleAssign}>
-                Assign
-              </button>
-            </div>
-          </div>
-        )}
-
-      {canAddAction &&
-        application.status !== "Accepted" &&
-        application.status !== "Rejected" && (
-          <div className="card">
-            <h2 className="font-semibold mb-1">Fine / Action Entry</h2>
-            <p className="text-xs text-gray-400 mb-3">
-              Entries with an amount are automatically posted to the student's
-              fee for <b>{application.semester?.label}</b>.
-            </p>
-            <form
-              onSubmit={handleAddAction}
-              className="grid grid-cols-1 md:grid-cols-4 gap-2"
-            >
-              <select
-                className="input"
-                value={actionForm.actionType}
-                onChange={(e) =>
-                  setActionForm({ ...actionForm, actionType: e.target.value })
-                }
-              >
-                {ACTION_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-              <input
-                className="input"
-                placeholder="Title"
-                value={actionForm.title}
-                onChange={(e) =>
-                  setActionForm({ ...actionForm, title: e.target.value })
-                }
-              />
-              <input
-                className="input"
-                placeholder="Fine Amount (optional)"
-                type="number"
-                value={actionForm.amount}
-                onChange={(e) =>
-                  setActionForm({ ...actionForm, amount: e.target.value })
-                }
-              />
-              <button className="btn-primary">Add</button>
-              <textarea
-                className="input md:col-span-4"
-                placeholder="Description"
-                value={actionForm.description}
-                onChange={(e) =>
-                  setActionForm({ ...actionForm, description: e.target.value })
-                }
-              />
-            </form>
-          </div>
-        )}
-
-      <div className="card overflow-x-auto">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">
-            Fee Ledger — {application.semester?.label}
-          </h2>
-          <Link
-            to={`/students/${application.student?.id}/fee`}
-            className="text-primary-600 text-sm hover:underline"
+      {student && (
+        <div className="card">
+          <h2 className="font-semibold mb-3">Step 2 — Select Semester</h2>
+          <select
+            className="input"
+            value={semesterId}
+            onChange={(e) => setSemesterId(e.target.value)}
           >
-            Open Fee Page →
-          </Link>
-        </div>
-        {(() => {
-          const bucket = feeData?.semesters?.find(
-            (b) => b.semester.id === application.semester?.id,
-          );
-          if (!bucket || bucket.fees.length === 0) {
-            return (
-              <p className="text-sm text-gray-400">
-                No fee entries yet for this semester.
-              </p>
-            );
-          }
-          return (
-            <>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Fee Type</th>
-                    <th>Amount</th>
-                    <th>Paid Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bucket.fees.map((f) => (
-                    <tr key={f.id}>
-                      <td className="capitalize">{f.feeType}</td>
-                      <td>Rs {Number(f.amount).toLocaleString()}</td>
-                      <td>
-                        <span
-                          className={`text-xs px-2 py-1 rounded-full ${f.paidStatus === "paid" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
-                        >
-                          {f.paidStatus}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="text-sm font-medium text-primary-700 mt-2">
-                Semester Total: Rs {bucket.semesterTotal.toLocaleString()}
-              </p>
-            </>
-          );
-        })()}
-      </div>
-
-      <div className="card">
-        <h2 className="font-semibold mb-3">Audit Trail</h2>
-        <div className="space-y-2">
-          {actions.length === 0 && (
-            <p className="text-sm text-gray-400">No actions recorded yet.</p>
+            <option value="">
+              Select the semester this application is for…
+            </option>
+            {semesters.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          {semesters.length === 0 && (
+            <p className="text-sm text-gray-400 mt-2">
+              No semesters found for this student yet.
+            </p>
           )}
-          {actions.map((a) => (
-            <div
-              key={a.id}
-              className={`text-sm border-l-4 pl-3 py-1 ${a.isDeleted ? "border-red-300 text-gray-400" : "border-primary-300"}`}
-            >
-              <p className="font-medium">
-                {a.actionType} {a.title ? `— ${a.title}` : ""}{" "}
-                {a.amount ? `(Rs ${Number(a.amount).toLocaleString()})` : ""}
-              </p>
-              {a.description && (
-                <p className="text-gray-500">{a.description}</p>
-              )}
-              <p className="text-xs text-gray-400">
-                {a.performedBy?.name} ({a.performedByRole}) ·{" "}
-                {new Date(a.createdAt).toLocaleString()}
-              </p>
-            </div>
-          ))}
         </div>
-      </div>
+      )}
 
-      {isReviewer &&
-        application.status !== "Accepted" &&
-        application.status !== "Rejected" && (
-          <div className="card">
-            <h2 className="font-semibold mb-3">Final Decision</h2>
-            <textarea
-              className="input mb-3"
-              placeholder="Reason (optional, shown to student on rejection)"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
+      {student && semesterId && (
+        <div className="card">
+          <h2 className="font-semibold mb-3">Step 3 — Application Details</h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              required
+              className="input"
+              placeholder="Title"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
             />
-            <div className="flex gap-2">
-              {application.status === "UnderReview" &&
-                user?.role !== "Manager" && (
+
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">
+                Proof Photo (optional — auto-compressed to under 800KB)
+              </label>
+              {!photoPreview && (
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="input"
+                  disabled={photoUploading}
+                  onChange={handlePhotoChange}
+                />
+              )}
+              {photoUploading && (
+                <p className="text-xs text-gray-400 mt-1">Processing photo…</p>
+              )}
+              {photoPreview && (
+                <div className="mt-2 flex items-start gap-3">
+                  <img
+                    src={photoPreview}
+                    alt="Proof preview"
+                    className="w-28 h-28 object-cover rounded-lg border border-gray-200"
+                  />
                   <button
-                    className="btn-secondary"
-                    onClick={() => markDone(id)}
+                    type="button"
+                    className="btn-secondary text-xs"
+                    onClick={removePhoto}
                   >
-                    Mark My Part Done
+                    Remove Photo
                   </button>
-                )}
-              <button
-                className="btn-primary bg-green-600 hover:bg-green-700"
-                onClick={() => handleDecide("Accepted")}
-              >
-                Accept
-              </button>
-              <button
-                className="btn-danger"
-                onClick={() => handleDecide("Rejected")}
-              >
-                Reject
-              </button>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={addFineNow}
+                onChange={(e) => setAddFineNow(e.target.checked)}
+              />
+              Add a fine now (e.g. late fee, attendance DC/UMC)
+            </label>
+
+            {addFineNow && (
+              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                <p className="text-xs text-gray-400">
+                  This amount will automatically post to the fee ledger for{" "}
+                  <b>{semesters.find((s) => s.id === semesterId)?.label}</b>.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <select
+                    className="input"
+                    value={fineForm.actionType}
+                    onChange={(e) =>
+                      setFineForm({ ...fineForm, actionType: e.target.value })
+                    }
+                  >
+                    {ACTION_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    className="input"
+                    type="number"
+                    placeholder="Fine Amount"
+                    value={fineForm.amount}
+                    onChange={(e) =>
+                      setFineForm({ ...fineForm, amount: e.target.value })
+                    }
+                  />
+                </div>
+                <input
+                  className="input"
+                  placeholder="Fine Title (optional)"
+                  value={fineForm.title}
+                  onChange={(e) =>
+                    setFineForm({ ...fineForm, title: e.target.value })
+                  }
+                />
+                <textarea
+                  className="input"
+                  placeholder="Fine Description (optional)"
+                  value={fineForm.description}
+                  onChange={(e) =>
+                    setFineForm({ ...fineForm, description: e.target.value })
+                  }
+                />
+              </div>
+            )}
+
+            <button className="btn-primary w-full" disabled={isLoading}>
+              {isLoading ? "Submitting…" : "Submit Application"}
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

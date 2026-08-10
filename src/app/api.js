@@ -240,6 +240,14 @@ export const api = createApi({
       query: (body) => ({ url: "/applications", method: "POST", body }),
       invalidatesTags: ["Applications"],
     }),
+    updateApplicationPhoto: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/applications/${id}/photo`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Applications"],
+    }),
     addApplicationAction: builder.mutation({
       query: ({ id, ...body }) => ({
         url: `/applications/${id}/actions`,
@@ -442,6 +450,7 @@ export const {
   useGetPendingApplicationsQuery,
   useGetApplicationQuery,
   useCreateApplicationMutation,
+  useUpdateApplicationPhotoMutation,
   useAddApplicationActionMutation,
   useAssignApplicationMutation,
   useMarkApplicationDoneMutation,

@@ -274,7 +274,6 @@ export default function CreateApplication() {
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  capture="environment"
                   className="input"
                   disabled={photoUploading}
                   onChange={handlePhotoChange}
