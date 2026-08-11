@@ -88,7 +88,7 @@ export default function ApplicationDetail() {
     { skip: !data?.application?.student?.id },
   );
   const { data: users = [] } = useGetUsersQuery(undefined, {
-    skip: user?.role !== "Manager",
+    skip: !["Manager", "Registrar"].includes(user?.role),
   });
   const [addAction] = useAddApplicationActionMutation();
   const [assign] = useAssignApplicationMutation();
@@ -372,7 +372,7 @@ export default function ApplicationDetail() {
         </div>
       </div>
 
-      {user?.role === "Manager" &&
+      {["Manager", "Registrar"].includes(user?.role) &&
         application.status !== "Accepted" &&
         application.status !== "Rejected" && (
           <div className="card">
