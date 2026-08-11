@@ -110,9 +110,12 @@ export default function ApplicationDetail() {
   const [photoProcessing, setPhotoProcessing] = useState(false);
   const photoInputRef = useRef(null);
 
-  const isReviewer = ["Manager", "AccountsManager", "StudentAffair"].includes(
-    user?.role,
-  );
+  const isReviewer = [
+    "Manager",
+    "AccountsManager",
+    "StudentAffair",
+    "Registrar",
+  ].includes(user?.role);
   const isDataEntry = user?.role === "DataEntry";
   // Same roles that are allowed to create applications can also edit the
   // proof photo afterward — Data Entry loses this once a reviewer has
