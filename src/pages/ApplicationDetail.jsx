@@ -115,6 +115,7 @@ export default function ApplicationDetail() {
     "AccountsManager",
     "StudentAffair",
     "Registrar",
+    "RecordRoom",
   ].includes(user?.role);
   const isDataEntry = user?.role === "DataEntry";
   // Same roles that are allowed to create applications can also edit the
@@ -262,8 +263,8 @@ export default function ApplicationDetail() {
 
             {!editingPhoto && application.photoData && (
               <div className="flex items-start gap-3">
-                <a
-                  href={`data:${application.photoMimeType || "image/jpeg"};base64,${application.photoData}`}
+                
+                 <a href={`data:${application.photoMimeType || "image/jpeg"};base64,${application.photoData}`}
                   target="_blank"
                   rel="noreferrer"
                 >
