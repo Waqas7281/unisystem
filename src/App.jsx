@@ -90,6 +90,7 @@ export default function App() {
                 "StudentAffair",
                 "Registrar",
                 "DataEntry",
+                "RecordRoom",
               ]}
             >
               <Applications />
@@ -106,6 +107,7 @@ export default function App() {
                 "StudentAffair",
                 "Registrar",
                 "DataEntry",
+                "RecordRoom",
               ]}
             >
               <ApplicationDetail />

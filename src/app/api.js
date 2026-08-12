@@ -219,10 +219,11 @@ export const api = createApi({
 
     // ---- Applications ----
     getApplications: builder.query({
-      query: ({ search, mine } = {}) => {
+      query: ({ search, mine, assignedToMe } = {}) => {
         const params = new URLSearchParams();
         if (search) params.set("search", search);
         if (mine) params.set("mine", "true");
+        if (assignedToMe) params.set("assignedToMe", "true");
         const qs = params.toString();
         return `/applications${qs ? `?${qs}` : ""}`;
       },

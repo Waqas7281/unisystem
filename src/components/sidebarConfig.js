@@ -32,7 +32,10 @@ export const SIDEBAR_CONFIG = {
     { label: "Create Application", path: "/create-application" },
     { label: "My Applications", path: "/applications" },
   ],
-  RecordRoom: [{ label: "Academic Records", path: "/academic-records" }],
+  RecordRoom: [
+    { label: "Applications", path: "/applications" },
+    { label: "Academic Records", path: "/academic-records" },
+  ],
   // Registrar can view every page in the project.
   Registrar: [
     { label: "Dashboard", path: "/dashboard" },
