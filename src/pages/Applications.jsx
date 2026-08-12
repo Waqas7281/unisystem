@@ -18,10 +18,13 @@ export default function Applications() {
   // Data Entry only ever sees applications they personally created — everyone
   // else (Manager, Registrar, Accounts Manager, Student Affair) sees all of them.
   const isDataEntry = user?.role === "DataEntry";
+  // Record Room only sees applications that were explicitly assigned to them.
+  const isRecordRoom = user?.role === "RecordRoom";
   const [search, setSearch] = useState("");
   const { data: applications = [], isLoading } = useGetApplicationsQuery({
     search,
     mine: isDataEntry,
+    assignedToMe: isRecordRoom,
   });
   const { page, setPage, totalPages, totalItems, pageSize, paginatedItems } =
     usePagination(applications, 10);
@@ -29,7 +32,11 @@ export default function Applications() {
   return (
     <div className="space-y-5">
       <h1 className="text-xl font-bold dark:text-gray-100">
-        {isDataEntry ? "My Applications" : "Applications"}
+        {isDataEntry
+          ? "My Applications"
+          : isRecordRoom
+            ? "Assigned Applications"
+            : "Applications"}
       </h1>
       <input
         className="input max-w-sm"
