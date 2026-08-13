@@ -91,6 +91,7 @@ export default function App() {
                 "Registrar",
                 "DataEntry",
                 "RecordRoom",
+                "Exam",
               ]}
             >
               <Applications />
@@ -108,6 +109,7 @@ export default function App() {
                 "Registrar",
                 "DataEntry",
                 "RecordRoom",
+                "Exam",
               ]}
             >
               <ApplicationDetail />

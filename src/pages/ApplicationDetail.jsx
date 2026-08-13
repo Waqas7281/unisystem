@@ -110,13 +110,16 @@ export default function ApplicationDetail() {
   const [photoProcessing, setPhotoProcessing] = useState(false);
   const photoInputRef = useRef(null);
 
-  const isReviewer = [
+  // Base reviewer roles can act on an application before it's been assigned
+  // to anyone. Department roles (Record Room, Exam, …) never appear here —
+  // they only ever get access once something is explicitly assigned to them.
+  const baseReviewerRoles = [
     "Manager",
     "AccountsManager",
     "StudentAffair",
     "Registrar",
-    "RecordRoom",
-  ].includes(user?.role);
+  ];
+  const isBaseReviewer = baseReviewerRoles.includes(user?.role);
   const isDataEntry = user?.role === "DataEntry";
   // Same roles that are allowed to create applications can also edit the
   // proof photo afterward — Data Entry loses this once a reviewer has
@@ -128,7 +131,13 @@ export default function ApplicationDetail() {
   if (isLoading) return <p className="text-gray-400 text-sm">Loading…</p>;
   if (!data) return null;
   const { application, actions } = data;
-  const canAddAction = isReviewer || (isDataEntry && !application.locked);
+  // Once an application is assigned to someone, review ability moves
+  // entirely to that person — it disappears for everyone else, including
+  // the base reviewer roles. Before assignment, base reviewers still have it.
+  const canReview = application.assignedTo
+    ? application.assignedTo.id === user?.id
+    : isBaseReviewer;
+  const canAddAction = canReview || (isDataEntry && !application.locked);
   const canEditPhoto = canManagePhoto && !(isDataEntry && application.locked);
 
   const handlePhotoFileChange = async (e) => {
@@ -263,8 +272,8 @@ export default function ApplicationDetail() {
 
             {!editingPhoto && application.photoData && (
               <div className="flex items-start gap-3">
-                
-                 <a href={`data:${application.photoMimeType || "image/jpeg"};base64,${application.photoData}`}
+                <a
+                  href={`data:${application.photoMimeType || "image/jpeg"};base64,${application.photoData}`}
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -540,7 +549,7 @@ export default function ApplicationDetail() {
         </div>
       </div>
 
-      {isReviewer &&
+      {canReview &&
         application.status !== "Accepted" &&
         application.status !== "Rejected" && (
           <div className="card">

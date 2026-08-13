@@ -36,6 +36,7 @@ export const SIDEBAR_CONFIG = {
     { label: "Applications", path: "/applications" },
     { label: "Academic Records", path: "/academic-records" },
   ],
+  Exam: [{ label: "Applications", path: "/applications" }],
   // Registrar can view every page in the project.
   Registrar: [
     { label: "Dashboard", path: "/dashboard" },
@@ -60,6 +61,7 @@ export const ROLE_LABELS = {
   StudentAffair: "Student Affair",
   DataEntry: "Data Entry",
   RecordRoom: "Record Room",
+  Exam: "Exam",
   Registrar: "Registrar",
   AdmissionCenter: "Admission Center",
   HR: "HR",

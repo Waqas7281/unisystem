@@ -11,6 +11,7 @@ const ROLES = [
   "AccountsManager",
   "StudentAffair",
   "RecordRoom",
+  "Exam",
   "Registrar",
   "DataEntry",
   "AdmissionCenter",
@@ -90,11 +91,13 @@ export default function Login() {
           ? "/create-application"
           : role === "RecordRoom"
             ? "/academic-records"
-            : role === "AdmissionCenter"
-              ? "/admission-center"
-              : role === "HR"
-                ? "/hr"
-                : "/dashboard",
+            : role === "Exam"
+              ? "/applications"
+              : role === "AdmissionCenter"
+                ? "/admission-center"
+                : role === "HR"
+                  ? "/hr"
+                  : "/dashboard",
       );
     } catch (err) {
       toast.error(
