@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Students from "./pages/Students";
 import StudentFeePage from "./pages/StudentFeePage";
 import Applications from "./pages/Applications";
+import AccountsHistory from "./pages/AccountsHistory";
 import ApplicationDetail from "./pages/ApplicationDetail";
 import Users from "./pages/Users";
 import CreateApplication from "./pages/CreateApplication";
@@ -121,6 +122,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={["Manager"]}>
               <Users />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/accounts-history"
+          element={
+            <ProtectedRoute allowedRoles={["Manager", "Registrar"]}>
+              <AccountsHistory />
             </ProtectedRoute>
           }
         />

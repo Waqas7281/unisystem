@@ -25,6 +25,7 @@ export const api = createApi({
     "Staff",
     "StaffApplications",
     "StaffLeaves",
+    "AuditLog",
   ],
   endpoints: (builder) => ({
     // ---- Auth ----
@@ -70,8 +71,6 @@ export const api = createApi({
     }),
 
     // ---- Students ----
-    // Accepts either a plain search string (legacy) or a filters object, e.g.
-    // { search, category, mine, missingMatric, missingInter, missingDegreeSession, program }
     getStudents: builder.query({
       query: (params) => {
         const filters =
@@ -327,6 +326,19 @@ export const api = createApi({
       invalidatesTags: ["AcademicRecords", "Students"],
     }),
 
+    // ---- Audit Log (Manager/Registrar history view) ----
+    getAuditLog: builder.query({
+      query: ({ studentId, userId, module } = {}) => {
+        const params = new URLSearchParams();
+        if (studentId) params.set("studentId", studentId);
+        if (userId) params.set("userId", userId);
+        if (module) params.set("module", module);
+        const qs = params.toString();
+        return `/audit${qs ? `?${qs}` : ""}`;
+      },
+      providesTags: ["AuditLog"],
+    }),
+
     // ---- Letters (Record Room) ----
     getLettersByStudent: builder.query({
       query: (studentId) => `/letters/by-student/${studentId}`,
@@ -463,6 +475,7 @@ export const {
   useGetAcademicRecordsQuery,
   useLazyGetAcademicRecordsQuery,
   useGetAcademicRecordsByStudentQuery,
+  useGetAuditLogQuery,
   useGetRecordRoomDashboardQuery,
   useCreateAcademicRecordMutation,
   useUpdateAcademicRecordMutation,
