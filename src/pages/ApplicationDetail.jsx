@@ -11,7 +11,12 @@ import {
   useGetUsersQuery,
   useGetStudentFeesQuery,
   useUpdateApplicationPhotoMutation,
+  useCreateSlipMutation,
 } from "../app/api";
+import SlipPrintCard, {
+  SLIP_TITLE_OPTIONS,
+  SESSION_TYPES,
+} from "../components/SlipPrintCard";
 
 const MAX_PHOTO_BYTES = 800 * 1024; // 800KB cap, matches backend check
 
@@ -96,13 +101,18 @@ export default function ApplicationDetail() {
   const [decide] = useDecideApplicationMutation();
   const [updatePhoto, { isLoading: photoSaving }] =
     useUpdateApplicationPhotoMutation();
+  const [createSlip, { isLoading: slipSaving }] = useCreateSlipMutation();
 
   const [actionForm, setActionForm] = useState({
     actionType: "Fine",
     title: "",
     description: "",
     amount: "",
+    slipTitle: SLIP_TITLE_OPTIONS[0],
+    sessionType: "Fall",
+    sessionYear: new Date().getFullYear(),
   });
+  const [slip, setSlip] = useState(null);
   const [assignTo, setAssignTo] = useState("");
   const [reason, setReason] = useState("");
   const [editingPhoto, setEditingPhoto] = useState(false);
@@ -216,14 +226,65 @@ export default function ApplicationDetail() {
           ? `Fine of Rs ${actionForm.amount} added and posted to the fee ledger`
           : "Action entry added",
       );
+      // Fine wali entry ke baad Accounts ke liye printable slip auto-populate
+      // ho jati hai — Print & Save Slip par click karte hi is ka serial
+      // number allocate ho kar DB mein save ho jayega.
+      if (actionForm.amount) {
+        setSlip({
+          title: actionForm.slipTitle,
+          sessionType: actionForm.sessionType,
+          sessionYear: actionForm.sessionYear,
+          rollNo: application.student?.enrollmentNumber,
+          program: application.student?.program,
+          amount: actionForm.amount,
+          preparedBy: user?.name,
+          extra: {},
+        });
+      }
       setActionForm({
         actionType: "Fine",
         title: "",
         description: "",
         amount: "",
+        slipTitle: SLIP_TITLE_OPTIONS[0],
+        sessionType: "Fall",
+        sessionYear: new Date().getFullYear(),
       });
     } catch (err) {
       toast.error(err?.data?.message || "Failed to add action");
+    }
+  };
+
+  // Slip abhi tak sirf ek draft object hai (state mein). Serial number sirf
+  // is button ke click par assign hota hai — isliye har print ka ek asli,
+  // DB mein saved serial number hota hai, sirf preview khol lene se nahi.
+  const handlePrintSlip = async () => {
+    if (!slip) return;
+    if (slip.serialNumber) {
+      // Already issued — reprint hi hai, naya serial number nahi banega.
+      window.print();
+      return;
+    }
+    try {
+      const saved = await createSlip({
+        applicationId: application.id,
+        studentId: application.student?.id,
+        title: slip.title,
+        sessionType: slip.sessionType,
+        sessionYear: slip.sessionYear,
+        rollNo: slip.rollNo,
+        program: slip.program,
+        amount: slip.amount,
+        preparedBy: slip.preparedBy,
+        extra: slip.extra,
+      }).unwrap();
+      setSlip((prev) => ({ ...prev, serialNumber: saved.serialNumber }));
+      toast.success(`Slip #${saved.serialNumber} saved`);
+      // State update flush hone ke baad print, taake serial number
+      // printed slip par bhi dikhe.
+      setTimeout(() => window.print(), 50);
+    } catch (err) {
+      toast.error(err?.data?.message || "Failed to save slip");
     }
   };
 
@@ -452,6 +513,43 @@ export default function ApplicationDetail() {
                   setActionForm({ ...actionForm, amount: e.target.value })
                 }
               />
+              <select
+                className="input"
+                value={actionForm.slipTitle}
+                onChange={(e) =>
+                  setActionForm({ ...actionForm, slipTitle: e.target.value })
+                }
+                title="Slip Title — jo bhi slip generate karni hai wo select karo"
+              >
+                {SLIP_TITLE_OPTIONS.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="input"
+                value={actionForm.sessionType}
+                onChange={(e) =>
+                  setActionForm({ ...actionForm, sessionType: e.target.value })
+                }
+                title="Slip ke liye session (Fall/Spring/Summer) manually select karo"
+              >
+                {SESSION_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+              <input
+                className="input"
+                type="number"
+                placeholder="Year"
+                value={actionForm.sessionYear}
+                onChange={(e) =>
+                  setActionForm({ ...actionForm, sessionYear: e.target.value })
+                }
+              />
               <button className="btn-primary">Add</button>
               <textarea
                 className="input md:col-span-4"
@@ -464,6 +562,16 @@ export default function ApplicationDetail() {
             </form>
           </div>
         )}
+
+      {slip && (
+        <SlipPrintCard
+          slip={slip}
+          onChange={setSlip}
+          onClose={() => setSlip(null)}
+          onPrint={handlePrintSlip}
+          printing={slipSaving}
+        />
+      )}
 
       <div className="card overflow-x-auto">
         <div className="flex items-center justify-between mb-3">
@@ -531,19 +639,40 @@ export default function ApplicationDetail() {
           {actions.map((a) => (
             <div
               key={a.id}
-              className={`text-sm border-l-4 pl-3 py-1 ${a.isDeleted ? "border-red-300 text-gray-400" : "border-primary-300"}`}
+              className={`text-sm border-l-4 pl-3 py-1 flex items-center justify-between gap-3 ${a.isDeleted ? "border-red-300 text-gray-400" : "border-primary-300"}`}
             >
-              <p className="font-medium">
-                {a.actionType} {a.title ? `— ${a.title}` : ""}{" "}
-                {a.amount ? `(Rs ${Number(a.amount).toLocaleString()})` : ""}
-              </p>
-              {a.description && (
-                <p className="text-gray-500">{a.description}</p>
+              <div>
+                <p className="font-medium">
+                  {a.actionType} {a.title ? `— ${a.title}` : ""}{" "}
+                  {a.amount ? `(Rs ${Number(a.amount).toLocaleString()})` : ""}
+                </p>
+                {a.description && (
+                  <p className="text-gray-500">{a.description}</p>
+                )}
+                <p className="text-xs text-gray-400">
+                  {a.performedBy?.name} ({a.performedByRole}) ·{" "}
+                  {new Date(a.createdAt).toLocaleString()}
+                </p>
+              </div>
+              {a.amount && !a.isDeleted && (
+                <button
+                  className="btn-secondary text-xs whitespace-nowrap"
+                  onClick={() =>
+                    setSlip({
+                      title: a.actionType,
+                      sessionType: "Fall",
+                      sessionYear: new Date().getFullYear(),
+                      rollNo: application.student?.enrollmentNumber,
+                      program: application.student?.program,
+                      amount: a.amount,
+                      preparedBy: a.performedBy?.name || user?.name,
+                      extra: {},
+                    })
+                  }
+                >
+                  🖨️ Generate Slip
+                </button>
               )}
-              <p className="text-xs text-gray-400">
-                {a.performedBy?.name} ({a.performedByRole}) ·{" "}
-                {new Date(a.createdAt).toLocaleString()}
-              </p>
             </div>
           ))}
         </div>

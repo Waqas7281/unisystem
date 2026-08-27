@@ -20,6 +20,7 @@ import HR from "./pages/HR";
 import StudentFullProfile from "./pages/StudentFullProfile";
 import ClearanceSlip from "./pages/ClearanceSlip";
 import ClearanceScanner from "./pages/ClearanceScanner";
+import SlipLookup from "./pages/SlipLookup";
 
 export default function App() {
   return (
@@ -211,6 +212,22 @@ export default function App() {
               ]}
             >
               <ClearanceScanner />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/slip-lookup"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "Manager",
+                "AccountsManager",
+                "StudentAffair",
+                "Registrar",
+                "DataEntry",
+              ]}
+            >
+              <SlipLookup />
             </ProtectedRoute>
           }
         />

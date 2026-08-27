@@ -8,15 +8,16 @@ import {
 } from "../app/api";
 
 const ACTION_TYPES = [
-  "Fine",
-  "DC",
-  "UMC",
-  "LateFee",
-  "DPT",
-  "Bar",
-  "Cancel",
-  "DropScholarship",
-  "Custom",
+  "Degree ",
+  "Transcript",
+  " Letter",
+  " Migration",
+  "Late Fee Fine",
+  "Summer Late Enrollment Fine",
+  "Summer Enrollment",
+  "Final Year Project",
+  "Absence Fine Slip",
+  "Other",
 ];
 
 const MAX_PHOTO_BYTES = 800 * 1024; // 800KB cap, matches backend check

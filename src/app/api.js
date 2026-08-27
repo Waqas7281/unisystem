@@ -26,6 +26,7 @@ export const api = createApi({
     "StaffApplications",
     "StaffLeaves",
     "AuditLog",
+    "Slips",
   ],
   endpoints: (builder) => ({
     // ---- Auth ----
@@ -160,6 +161,16 @@ export const api = createApi({
         url: `/clearance/verify/${encodeURIComponent(token)}`,
         method: "POST",
       }),
+    }),
+
+    // ---- Serial-numbered Slips ----
+    createSlip: builder.mutation({
+      query: (body) => ({ url: "/slips", method: "POST", body }),
+      invalidatesTags: ["Slips"],
+    }),
+    getSlipBySerial: builder.query({
+      query: (serialNumber) => `/slips/${encodeURIComponent(serialNumber)}`,
+      providesTags: ["Slips"],
     }),
 
     // ---- Fees ----
@@ -499,4 +510,6 @@ export const {
   useLazySearchClearanceStudentQuery,
   useGenerateClearanceSlipMutation,
   useVerifyClearanceTokenMutation,
+  useCreateSlipMutation,
+  useLazyGetSlipBySerialQuery,
 } = api;
