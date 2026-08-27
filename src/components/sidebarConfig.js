@@ -28,6 +28,7 @@ export const SIDEBAR_CONFIG = {
     { label: "Fee Detail", path: "/students?mode=fee" },
     { label: "Students", path: "/students" },
     { label: "Scan Slip", path: "/clearance-scanner" },
+    { label: "Full Student Profile", path: "/full-profile" },
   ],
   DataEntry: [
     { label: "Create Application", path: "/create-application" },
