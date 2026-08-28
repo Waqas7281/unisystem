@@ -267,6 +267,36 @@ export const api = createApi({
       }),
       invalidatesTags: ["Applications", "Fees"],
     }),
+    assignApplicationStage: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/applications/${id}/assign-stage`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Applications"],
+    }),
+    acceptApplicationStage: builder.mutation({
+      query: (id) => ({
+        url: `/applications/${id}/accept-stage`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Applications"],
+    }),
+    raiseApplicationIssue: builder.mutation({
+      query: ({ id, message }) => ({
+        url: `/applications/${id}/issues`,
+        method: "POST",
+        body: { message },
+      }),
+      invalidatesTags: ["Applications"],
+    }),
+    resolveApplicationIssue: builder.mutation({
+      query: (issueId) => ({
+        url: `/applications/issues/${issueId}/resolve`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Applications"],
+    }),
     assignApplication: builder.mutation({
       query: ({ id, ...body }) => ({
         url: `/applications/${id}/assign`,
@@ -512,4 +542,8 @@ export const {
   useVerifyClearanceTokenMutation,
   useCreateSlipMutation,
   useLazyGetSlipBySerialQuery,
+  useAssignApplicationStageMutation,
+  useAcceptApplicationStageMutation,
+  useRaiseApplicationIssueMutation,
+  useResolveApplicationIssueMutation,
 } = api;

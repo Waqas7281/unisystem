@@ -5,8 +5,10 @@ import { toast } from "react-toastify";
 import {
   useGetApplicationQuery,
   useAddApplicationActionMutation,
-  useAssignApplicationMutation,
-  useMarkApplicationDoneMutation,
+  useAssignApplicationStageMutation,
+  useAcceptApplicationStageMutation,
+  useRaiseApplicationIssueMutation,
+  useResolveApplicationIssueMutation,
   useDecideApplicationMutation,
   useGetUsersQuery,
   useGetStudentFeesQuery,
@@ -96,8 +98,13 @@ export default function ApplicationDetail() {
     skip: !["Manager", "Registrar"].includes(user?.role),
   });
   const [addAction] = useAddApplicationActionMutation();
-  const [assign] = useAssignApplicationMutation();
-  const [markDone] = useMarkApplicationDoneMutation();
+  const [assignStage, { isLoading: assigningStage }] =
+    useAssignApplicationStageMutation();
+  const [acceptStage, { isLoading: acceptingStage }] =
+    useAcceptApplicationStageMutation();
+  const [raiseIssue, { isLoading: raisingIssue }] =
+    useRaiseApplicationIssueMutation();
+  const [resolveIssue] = useResolveApplicationIssueMutation();
   const [decide] = useDecideApplicationMutation();
   const [updatePhoto, { isLoading: photoSaving }] =
     useUpdateApplicationPhotoMutation();
@@ -113,8 +120,10 @@ export default function ApplicationDetail() {
     sessionYear: new Date().getFullYear(),
   });
   const [slip, setSlip] = useState(null);
-  const [assignTo, setAssignTo] = useState("");
+  // One pending "person to assign" selection per stage (1, 2, 3).
+  const [stageAssignTo, setStageAssignTo] = useState({ 1: "", 2: "", 3: "" });
   const [reason, setReason] = useState("");
+  const [issueMessage, setIssueMessage] = useState("");
   const [editingPhoto, setEditingPhoto] = useState(false);
   const [newPhotoPreview, setNewPhotoPreview] = useState(null);
   const [photoProcessing, setPhotoProcessing] = useState(false);
@@ -131,6 +140,7 @@ export default function ApplicationDetail() {
   ];
   const isBaseReviewer = baseReviewerRoles.includes(user?.role);
   const isDataEntry = user?.role === "DataEntry";
+  const canManagerAssign = ["Manager", "Registrar"].includes(user?.role);
   // Same roles that are allowed to create applications can also edit the
   // proof photo afterward — Data Entry loses this once a reviewer has
   // locked the application (same rule as adding actions).
@@ -140,15 +150,43 @@ export default function ApplicationDetail() {
 
   if (isLoading) return <p className="text-gray-400 text-sm">Loading…</p>;
   if (!data) return null;
-  const { application, actions } = data;
-  // Once an application is assigned to someone, review ability moves
-  // entirely to that person — it disappears for everyone else, including
-  // the base reviewer roles. Before assignment, base reviewers still have it.
-  const canReview = application.assignedTo
-    ? application.assignedTo.id === user?.id
-    : isBaseReviewer;
+  const { application, actions, assignments = [], issues = [] } = data;
+  const isFinal =
+    application.status === "Accepted" || application.status === "Rejected";
+  const stageRow = (n) => assignments.find((a) => a.stage === n);
+  // The one stage currently "in progress" (assigned but not yet accepted).
+  // undefined means either nothing assigned yet, or every assigned stage so
+  // far has been accepted.
+  const currentAssignment = assignments.find((a) => !a.accepted);
+  const isCurrentAssignee =
+    !!currentAssignment && currentAssignment.assignedTo?.id === user?.id;
+  // IMPORTANT: only fall back to "any base reviewer role" when the
+  // application has NEVER been assigned at all (assignments.length === 0).
+  // Once at least one stage has been assigned, only the exact current
+  // assignee has review access — this used to fall back to isBaseReviewer
+  // whenever currentAssignment was undefined for ANY reason (including a
+  // data hiccup), which silently locked out non-base-reviewer roles like
+  // Exam/RecordRoom at stage 2/3 while base-reviewer-role assignees could
+  // slip through at the wrong time.
+  const canReview =
+    assignments.length > 0
+      ? !!currentAssignment && currentAssignment.assignedTo?.id === user?.id
+      : isBaseReviewer;
   const canAddAction = canReview || (isDataEntry && !application.locked);
   const canEditPhoto = canManagePhoto && !(isDataEntry && application.locked);
+  const openIssues = issues.filter((i) => !i.resolved);
+  const hasOpenIssue = openIssues.length > 0;
+
+  // Stage N can be assigned by Manager/Registrar only if: it hasn't already
+  // been accepted, and (for stage 2/3) the previous stage HAS been accepted.
+  const canAssignStage = (n) => {
+    if (isFinal || !canManagerAssign) return false;
+    const row = stageRow(n);
+    if (row?.accepted) return false;
+    if (n === 1) return true;
+    const prev = stageRow(n - 1);
+    return !!prev?.accepted;
+  };
 
   const handlePhotoFileChange = async (e) => {
     const file = e.target.files?.[0];
@@ -226,9 +264,6 @@ export default function ApplicationDetail() {
           ? `Fine of Rs ${actionForm.amount} added and posted to the fee ledger`
           : "Action entry added",
       );
-      // Fine wali entry ke baad Accounts ke liye printable slip auto-populate
-      // ho jati hai — Print & Save Slip par click karte hi is ka serial
-      // number allocate ho kar DB mein save ho jayega.
       if (actionForm.amount) {
         setSlip({
           title: actionForm.slipTitle,
@@ -255,13 +290,9 @@ export default function ApplicationDetail() {
     }
   };
 
-  // Slip abhi tak sirf ek draft object hai (state mein). Serial number sirf
-  // is button ke click par assign hota hai — isliye har print ka ek asli,
-  // DB mein saved serial number hota hai, sirf preview khol lene se nahi.
   const handlePrintSlip = async () => {
     if (!slip) return;
     if (slip.serialNumber) {
-      // Already issued — reprint hi hai, naya serial number nahi banega.
       window.print();
       return;
     }
@@ -280,26 +311,61 @@ export default function ApplicationDetail() {
       }).unwrap();
       setSlip((prev) => ({ ...prev, serialNumber: saved.serialNumber }));
       toast.success(`Slip #${saved.serialNumber} saved`);
-      // State update flush hone ke baad print, taake serial number
-      // printed slip par bhi dikhe.
       setTimeout(() => window.print(), 50);
     } catch (err) {
       toast.error(err?.data?.message || "Failed to save slip");
     }
   };
 
-  const handleAssign = async () => {
-    if (!assignTo) return;
-    const targetUser = users.find((u) => u.id === assignTo);
+  const handleAssignStage = async (stageNum) => {
+    const uid = stageAssignTo[stageNum];
+    if (!uid) return;
+    const targetUser = users.find((u) => u.id === uid);
     try {
-      await assign({
+      await assignStage({
         id,
-        assignedToUserId: assignTo,
+        stage: stageNum,
+        assignedToUserId: uid,
         assignedRole: targetUser?.role,
       }).unwrap();
-      toast.success(`Assigned to ${targetUser?.name}`);
-    } catch {
-      toast.error("Failed to assign");
+      toast.success(`Stage ${stageNum} assigned to ${targetUser?.name}`);
+      setStageAssignTo((prev) => ({ ...prev, [stageNum]: "" }));
+    } catch (err) {
+      toast.error(err?.data?.message || "Failed to assign stage");
+    }
+  };
+
+  const handleAcceptStage = async () => {
+    try {
+      await acceptStage(id).unwrap();
+      toast.success(
+        currentAssignment?.stage >= 3
+          ? "Final stage accepted — application marked Accepted"
+          : `Stage ${currentAssignment?.stage} accepted — ready for the next assignment`,
+      );
+    } catch (err) {
+      toast.error(err?.data?.message || "Failed to accept stage");
+    }
+  };
+
+  const handleRaiseIssue = async (e) => {
+    e.preventDefault();
+    if (!issueMessage.trim()) return;
+    try {
+      await raiseIssue({ id, message: issueMessage.trim() }).unwrap();
+      toast.success("Issue raised — application can't move forward until it's cleared");
+      setIssueMessage("");
+    } catch (err) {
+      toast.error(err?.data?.message || "Failed to raise issue");
+    }
+  };
+
+  const handleResolveIssue = async (issueId) => {
+    try {
+      await resolveIssue(issueId).unwrap();
+      toast.success("Issue cleared");
+    } catch (err) {
+      toast.error(err?.data?.message || "Failed to clear issue");
     }
   };
 
@@ -333,8 +399,8 @@ export default function ApplicationDetail() {
 
             {!editingPhoto && application.photoData && (
               <div className="flex items-start gap-3">
-                <a
-                  href={`data:${application.photoMimeType || "image/jpeg"};base64,${application.photoData}`}
+                
+                <a  href={`data:${application.photoMimeType || "image/jpeg"};base64,${application.photoData}`}
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -443,32 +509,81 @@ export default function ApplicationDetail() {
         </div>
       </div>
 
-      {["Manager", "Registrar"].includes(user?.role) &&
-        application.status !== "Accepted" &&
-        application.status !== "Rejected" && (
-          <div className="card">
-            <h2 className="font-semibold mb-3">Assign & Review</h2>
-            <div className="flex flex-wrap gap-2 items-end">
-              <select
-                className="input max-w-xs"
-                value={assignTo}
-                onChange={(e) => setAssignTo(e.target.value)}
+      <div className="card">
+        <h2 className="font-semibold mb-1">Assignment Workflow</h2>
+        <p className="text-xs text-gray-400 mb-3">
+          Application moves through up to 3 departments in order — a stage
+          can only be assigned once the one before it has been accepted.
+        </p>
+        <div className="space-y-3">
+          {[1, 2, 3].map((n) => {
+            const row = stageRow(n);
+            return (
+              <div
+                key={n}
+                className="flex flex-wrap items-center gap-2 border-b border-gray-100 pb-3 last:border-0 last:pb-0"
               >
-                <option value="">Select person to assign…</option>
-                {users
-                  .filter((u) => u.id !== application.createdBy?.id)
-                  .map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name} ({u.role})
-                    </option>
-                  ))}
-              </select>
-              <button className="btn-primary" onClick={handleAssign}>
-                Assign
-              </button>
-            </div>
-          </div>
-        )}
+                <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                  Stage {n}
+                </span>
+                {row ? (
+                  <span className="text-sm">
+                    <span className="font-medium">
+                      {row.assignedTo?.name}
+                    </span>{" "}
+                    <span className="text-gray-400">
+                      ({row.assignedRole})
+                    </span>{" "}
+                    {row.accepted ? (
+                      <span className="text-green-600 text-xs font-medium">
+                        ✓ Accepted
+                      </span>
+                    ) : (
+                      <span className="text-amber-600 text-xs font-medium">
+                        Pending acceptance
+                      </span>
+                    )}
+                  </span>
+                ) : (
+                  <span className="text-sm text-gray-400">
+                    Not assigned yet
+                  </span>
+                )}
+                {canAssignStage(n) && (
+                  <div className="flex flex-wrap gap-2 ml-auto">
+                    <select
+                      className="input w-auto"
+                      value={stageAssignTo[n]}
+                      onChange={(e) =>
+                        setStageAssignTo({
+                          ...stageAssignTo,
+                          [n]: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="">Select person…</option>
+                      {users
+                        .filter((u) => u.id !== application.createdBy?.id)
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name} ({u.role})
+                          </option>
+                        ))}
+                    </select>
+                    <button
+                      className="btn-primary text-xs"
+                      onClick={() => handleAssignStage(n)}
+                      disabled={assigningStage || !stageAssignTo[n]}
+                    >
+                      {row ? "Reassign" : "Assign"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {canAddAction &&
         application.status !== "Accepted" &&
@@ -678,42 +793,113 @@ export default function ApplicationDetail() {
         </div>
       </div>
 
-      {canReview &&
-        application.status !== "Accepted" &&
-        application.status !== "Rejected" && (
-          <div className="card">
-            <h2 className="font-semibold mb-3">Final Decision</h2>
-            <textarea
-              className="input mb-3"
-              placeholder="Reason (optional, shown to student on rejection)"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
+      <div className="card">
+        <h2 className="font-semibold mb-1">Issue Box</h2>
+        <p className="text-xs text-gray-400 mb-3">
+          Raised by whoever currently holds the application — visible to
+          every department. While any issue below is open, the application
+          can't be accepted forward.
+        </p>
+
+        {issues.length === 0 && (
+          <p className="text-sm text-gray-400 mb-3">No issues raised.</p>
+        )}
+
+        <div className="space-y-2 mb-3">
+          {issues.map((iss) => (
+            <div
+              key={iss.id}
+              className={`text-sm border-l-4 pl-3 py-2 flex items-start justify-between gap-3 ${
+                iss.resolved
+                  ? "border-gray-200 text-gray-400"
+                  : "border-red-400 bg-red-50"
+              }`}
+            >
+              <div>
+                <p className={iss.resolved ? "" : "font-medium text-red-700"}>
+                  {iss.message}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {iss.raisedBy?.name} ({iss.raisedByRole}) ·{" "}
+                  {new Date(iss.raisedAt).toLocaleString()}
+                  {iss.resolved &&
+                    ` · Cleared by ${iss.resolvedBy?.name || "—"} on ${new Date(
+                      iss.resolvedAt,
+                    ).toLocaleString()}`}
+                </p>
+              </div>
+              {!iss.resolved && canReview && (
+                <button
+                  className="btn-secondary text-xs whitespace-nowrap"
+                  onClick={() => handleResolveIssue(iss.id)}
+                >
+                  Mark Cleared
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {canReview && !isFinal && (
+          <form onSubmit={handleRaiseIssue} className="flex flex-wrap gap-2">
+            <input
+              className="input flex-1 min-w-[200px]"
+              placeholder="Describe the issue (e.g. dues not clear, missing document)…"
+              value={issueMessage}
+              onChange={(e) => setIssueMessage(e.target.value)}
             />
-            <div className="flex gap-2">
-              {application.status === "UnderReview" &&
-                user?.role !== "Manager" && (
-                  <button
-                    className="btn-secondary"
-                    onClick={() => markDone(id)}
-                  >
-                    Mark My Part Done
-                  </button>
-                )}
+            <button
+              type="submit"
+              className="btn-secondary"
+              disabled={raisingIssue || !issueMessage.trim()}
+            >
+              Raise Issue
+            </button>
+          </form>
+        )}
+      </div>
+
+      {canReview && !isFinal && (
+        <div className="card">
+          <h2 className="font-semibold mb-3">
+            {currentAssignment
+              ? `Stage ${currentAssignment.stage} Decision`
+              : "Decision"}
+          </h2>
+          {hasOpenIssue && (
+            <p className="text-xs text-red-600 mb-2">
+              This application has an unresolved issue — clear it in the
+              Issue Box above before accepting.
+            </p>
+          )}
+          <textarea
+            className="input mb-3"
+            placeholder="Reason (optional, shown to student on rejection)"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+          <div className="flex gap-2">
+            {currentAssignment && isCurrentAssignee && (
               <button
                 className="btn-primary bg-green-600 hover:bg-green-700"
-                onClick={() => handleDecide("Accepted")}
+                onClick={handleAcceptStage}
+                disabled={acceptingStage || hasOpenIssue}
+                title={hasOpenIssue ? "Clear the open issue first" : undefined}
               >
-                Accept
+                {currentAssignment.stage >= 3
+                  ? "Accept & Finalize"
+                  : `Accept & Forward (Stage ${currentAssignment.stage} → ${currentAssignment.stage + 1})`}
               </button>
-              <button
-                className="btn-danger"
-                onClick={() => handleDecide("Rejected")}
-              >
-                Reject
-              </button>
-            </div>
+            )}
+            <button
+              className="btn-danger"
+              onClick={() => handleDecide("Rejected")}
+            >
+              Reject
+            </button>
           </div>
-        )}
+        </div>
+      )}
     </div>
   );
 }
