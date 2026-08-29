@@ -185,7 +185,9 @@ export default function App() {
         <Route
           path="/full-profile"
           element={
-            <ProtectedRoute allowedRoles={["Manager", "Registrar"]}>
+            <ProtectedRoute
+              allowedRoles={["Manager", "Registrar", "StudentAffair"]}
+            >
               <StudentFullProfile />
             </ProtectedRoute>
           }
