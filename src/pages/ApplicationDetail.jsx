@@ -13,6 +13,7 @@ import {
   useGetUsersQuery,
   useGetStudentFeesQuery,
   useUpdateApplicationPhotoMutation,
+  useUpdateApplicationMutation,
   useCreateSlipMutation,
 } from "../app/api";
 import SlipPrintCard, {
@@ -108,6 +109,7 @@ export default function ApplicationDetail() {
   const [decide] = useDecideApplicationMutation();
   const [updatePhoto, { isLoading: photoSaving }] =
     useUpdateApplicationPhotoMutation();
+  const [updateApplication] = useUpdateApplicationMutation();
   const [createSlip, { isLoading: slipSaving }] = useCreateSlipMutation();
 
   const [actionForm, setActionForm] = useState({
@@ -128,6 +130,11 @@ export default function ApplicationDetail() {
   const [newPhotoPreview, setNewPhotoPreview] = useState(null);
   const [photoProcessing, setPhotoProcessing] = useState(false);
   const photoInputRef = useRef(null);
+  const [editingApp, setEditingApp] = useState(false);
+  const [appEditForm, setAppEditForm] = useState({
+    title: "",
+    description: "",
+  });
 
   // Base reviewer roles can act on an application before it's been assigned
   // to anyone. Department roles (Record Room, Exam, …) never appear here —
@@ -174,6 +181,11 @@ export default function ApplicationDetail() {
       : isBaseReviewer;
   const canAddAction = canReview || (isDataEntry && !application.locked);
   const canEditPhoto = canManagePhoto && !(isDataEntry && application.locked);
+  // Data Entry can edit the application's own title/description only until
+  // a reviewer touches it — `locked` flips true the moment either a
+  // reviewer adds an action or the application gets assigned, which is
+  // exactly the "still pending, not yet assigned" window requested.
+  const canEditApplication = isDataEntry && !application.locked;
   const openIssues = issues.filter((i) => !i.resolved);
   const hasOpenIssue = openIssues.length > 0;
 
@@ -247,6 +259,24 @@ export default function ApplicationDetail() {
     setEditingPhoto(false);
     setNewPhotoPreview(null);
     if (photoInputRef.current) photoInputRef.current.value = "";
+  };
+
+  const startEditApp = () => {
+    setAppEditForm({
+      title: application.title || "",
+      description: application.description || "",
+    });
+    setEditingApp(true);
+  };
+
+  const handleSaveAppEdit = async () => {
+    try {
+      await updateApplication({ id, ...appEditForm }).unwrap();
+      toast.success("Application updated");
+      setEditingApp(false);
+    } catch (err) {
+      toast.error(err?.data?.message || "Failed to update application");
+    }
   };
 
   const handleAddAction = async (e) => {
@@ -353,7 +383,9 @@ export default function ApplicationDetail() {
     if (!issueMessage.trim()) return;
     try {
       await raiseIssue({ id, message: issueMessage.trim() }).unwrap();
-      toast.success("Issue raised — application can't move forward until it's cleared");
+      toast.success(
+        "Issue raised — application can't move forward until it's cleared",
+      );
       setIssueMessage("");
     } catch (err) {
       toast.error(err?.data?.message || "Failed to raise issue");
@@ -384,10 +416,54 @@ export default function ApplicationDetail() {
     <div className="space-y-5">
       <div className="card">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h1 className="text-xl font-bold">{application.title}</h1>
-            <p className="text-sm text-gray-500">{application.description}</p>
-          </div>
+          {editingApp ? (
+            <div className="flex-1 space-y-2">
+              <input
+                className="input font-bold"
+                value={appEditForm.title}
+                onChange={(e) =>
+                  setAppEditForm({ ...appEditForm, title: e.target.value })
+                }
+              />
+              <textarea
+                className="input text-sm"
+                value={appEditForm.description}
+                onChange={(e) =>
+                  setAppEditForm({
+                    ...appEditForm,
+                    description: e.target.value,
+                  })
+                }
+              />
+              <div className="flex gap-2">
+                <button
+                  className="btn-primary text-xs"
+                  onClick={handleSaveAppEdit}
+                >
+                  Save
+                </button>
+                <button
+                  className="btn-secondary text-xs"
+                  onClick={() => setEditingApp(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <h1 className="text-xl font-bold">{application.title}</h1>
+              <p className="text-sm text-gray-500">{application.description}</p>
+              {canEditApplication && (
+                <button
+                  className="text-primary-600 text-xs hover:underline mt-1"
+                  onClick={startEditApp}
+                >
+                  ✏️ Edit
+                </button>
+              )}
+            </div>
+          )}
           <span className="text-xs px-3 py-1 rounded-full bg-primary-100 text-primary-700">
             {application.status}
           </span>
@@ -399,8 +475,8 @@ export default function ApplicationDetail() {
 
             {!editingPhoto && application.photoData && (
               <div className="flex items-start gap-3">
-                
-                <a  href={`data:${application.photoMimeType || "image/jpeg"};base64,${application.photoData}`}
+                <a
+                  href={`data:${application.photoMimeType || "image/jpeg"};base64,${application.photoData}`}
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -512,8 +588,8 @@ export default function ApplicationDetail() {
       <div className="card">
         <h2 className="font-semibold mb-1">Assignment Workflow</h2>
         <p className="text-xs text-gray-400 mb-3">
-          Application moves through up to 3 departments in order — a stage
-          can only be assigned once the one before it has been accepted.
+          Application moves through up to 3 departments in order — a stage can
+          only be assigned once the one before it has been accepted.
         </p>
         <div className="space-y-3">
           {[1, 2, 3].map((n) => {
@@ -528,12 +604,8 @@ export default function ApplicationDetail() {
                 </span>
                 {row ? (
                   <span className="text-sm">
-                    <span className="font-medium">
-                      {row.assignedTo?.name}
-                    </span>{" "}
-                    <span className="text-gray-400">
-                      ({row.assignedRole})
-                    </span>{" "}
+                    <span className="font-medium">{row.assignedTo?.name}</span>{" "}
+                    <span className="text-gray-400">({row.assignedRole})</span>{" "}
                     {row.accepted ? (
                       <span className="text-green-600 text-xs font-medium">
                         ✓ Accepted
@@ -796,9 +868,9 @@ export default function ApplicationDetail() {
       <div className="card">
         <h2 className="font-semibold mb-1">Issue Box</h2>
         <p className="text-xs text-gray-400 mb-3">
-          Raised by whoever currently holds the application — visible to
-          every department. While any issue below is open, the application
-          can't be accepted forward.
+          Raised by whoever currently holds the application — visible to every
+          department. While any issue below is open, the application can't be
+          accepted forward.
         </p>
 
         {issues.length === 0 && (
@@ -868,8 +940,8 @@ export default function ApplicationDetail() {
           </h2>
           {hasOpenIssue && (
             <p className="text-xs text-red-600 mb-2">
-              This application has an unresolved issue — clear it in the
-              Issue Box above before accepting.
+              This application has an unresolved issue — clear it in the Issue
+              Box above before accepting.
             </p>
           )}
           <textarea
