@@ -21,14 +21,36 @@ export default function Applications() {
   // Department roles (Record Room, Exam, …) only see applications that were
   // explicitly assigned to them.
   const isAssignedDept = ["RecordRoom", "Exam"].includes(user?.role);
-  const [search, setSearch] = useState("");
+   const [search, setSearch] = useState("");
+  // Sirf role-based scoping (mine / assignedToMe) backend se hoti hai —
+  // text search ab client-side hai, is liye poori list ek hi baar mangwa
+  // lete hain aur baaki filtering neeche foran (bina kisi API call ke) ho
+  // jaati hai, jaise hi user type karta hai.
   const { data: applications = [], isLoading } = useGetApplicationsQuery({
-    search,
     mine: isDataEntry,
     assignedToMe: isAssignedDept,
   });
+
+  const filteredApplications = applications.filter((app) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    const haystack = [
+      app.title,
+      app.description,
+      app.student?.name,
+      app.student?.enrollmentNumber,
+      app.status,
+      app.createdBy?.name,
+      app.assignedTo?.name,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(q);
+  });
+
   const { page, setPage, totalPages, totalItems, pageSize, paginatedItems } =
-    usePagination(applications, 10);
+    usePagination(filteredApplications, 10);
 
   return (
     <div className="space-y-5">
@@ -41,7 +63,7 @@ export default function Applications() {
       </h1>
       <input
         className="input max-w-sm"
-        placeholder="Filter by Enrollment Number…"
+        placeholder="Search by title, student, roll no, status…"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
@@ -65,10 +87,12 @@ export default function Applications() {
                 </td>
               </tr>
             )}
-            {!isLoading && applications.length === 0 && (
+            {!isLoading && filteredApplications.length === 0 && (
               <tr>
                 <td colSpan={6} className="text-center text-gray-400 py-6">
-                  No applications found
+                  {search.trim()
+                    ? "No applications match your search"
+                    : "No applications found"}
                 </td>
               </tr>
             )}
