@@ -275,6 +275,17 @@ export const api = createApi({
       }),
       invalidatesTags: ["Applications", "Fees"],
     }),
+    // Backend never overwrites an audit-trail entry — it appends a
+    // correction row (linked via originalActionId) so the wrong value
+    // stays visible too. Used to fix a mistyped amount/title/description.
+    updateApplicationAction: builder.mutation({
+      query: ({ actionId, ...body }) => ({
+        url: `/applications/actions/${actionId}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Applications", "Fees"],
+    }),
     assignApplicationStage: builder.mutation({
       query: ({ id, ...body }) => ({
         url: `/applications/${id}/assign-stage`,
@@ -515,6 +526,7 @@ export const {
   useUpdateApplicationMutation,
   useUpdateApplicationPhotoMutation,
   useAddApplicationActionMutation,
+  useUpdateApplicationActionMutation,
   useAssignApplicationMutation,
   useMarkApplicationDoneMutation,
   useDecideApplicationMutation,

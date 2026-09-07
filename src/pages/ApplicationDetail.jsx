@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import {
   useGetApplicationQuery,
   useAddApplicationActionMutation,
+  useUpdateApplicationActionMutation,
   useAssignApplicationStageMutation,
   useAcceptApplicationStageMutation,
   useRaiseApplicationIssueMutation,
@@ -99,6 +100,8 @@ export default function ApplicationDetail() {
     skip: !["Manager", "Registrar"].includes(user?.role),
   });
   const [addAction] = useAddApplicationActionMutation();
+  const [updateAction, { isLoading: savingActionEdit }] =
+    useUpdateApplicationActionMutation();
   const [assignStage, { isLoading: assigningStage }] =
     useAssignApplicationStageMutation();
   const [acceptStage, { isLoading: acceptingStage }] =
@@ -126,6 +129,12 @@ export default function ApplicationDetail() {
   const [stageAssignTo, setStageAssignTo] = useState({ 1: "", 2: "", 3: "" });
   const [reason, setReason] = useState("");
   const [issueMessage, setIssueMessage] = useState("");
+  const [editingActionId, setEditingActionId] = useState(null);
+  const [editActionForm, setEditActionForm] = useState({
+    title: "",
+    description: "",
+    amount: "",
+  });
   const [editingPhoto, setEditingPhoto] = useState(false);
   const [newPhotoPreview, setNewPhotoPreview] = useState(null);
   const [photoProcessing, setPhotoProcessing] = useState(false);
@@ -180,6 +189,11 @@ export default function ApplicationDetail() {
       ? !!currentAssignment && currentAssignment.assignedTo?.id === user?.id
       : isBaseReviewer;
   const canAddAction = canReview || (isDataEntry && !application.locked);
+  // Manager can always correct an entry. Data Entry can too, but only
+  // while the application is still unlocked — same window as adding a
+  // fine in the first place; matches the backend's assertEditable rule.
+  const canEditAuditEntry =
+    user?.role === "Manager" || (isDataEntry && !application.locked);
   const canEditPhoto = canManagePhoto && !(isDataEntry && application.locked);
   // Data Entry can edit the application's own title/description only until
   // a reviewer touches it — `locked` flips true the moment either a
@@ -317,6 +331,42 @@ export default function ApplicationDetail() {
       });
     } catch (err) {
       toast.error(err?.data?.message || "Failed to add action");
+    }
+  };
+
+  // Manager-only correction flow for an existing audit-trail entry. Backend
+  // never overwrites the original row — it appends a new one that links
+  // back via originalActionId, so the mistake stays visible in the trail
+  // alongside the fix.
+  const startEditAction = (a) => {
+    setEditingActionId(a.id);
+    setEditActionForm({
+      title: a.title || "",
+      description: a.description || "",
+      amount: a.amount ?? "",
+    });
+  };
+
+  const cancelEditAction = () => {
+    setEditingActionId(null);
+    setEditActionForm({ title: "", description: "", amount: "" });
+  };
+
+  const handleSaveActionEdit = async (actionId) => {
+    try {
+      await updateAction({
+        actionId,
+        title: editActionForm.title || undefined,
+        description: editActionForm.description || undefined,
+        amount:
+          editActionForm.amount === ""
+            ? undefined
+            : Number(editActionForm.amount),
+      }).unwrap();
+      toast.success("Entry corrected — a new audit-trail row was added");
+      cancelEditAction();
+    } catch (err) {
+      toast.error(err?.data?.message || "Failed to update entry");
     }
   };
 
@@ -823,45 +873,144 @@ export default function ApplicationDetail() {
           {actions.length === 0 && (
             <p className="text-sm text-gray-400">No actions recorded yet.</p>
           )}
-          {actions.map((a) => (
-            <div
-              key={a.id}
-              className={`text-sm border-l-4 pl-3 py-1 flex items-center justify-between gap-3 ${a.isDeleted ? "border-red-300 text-gray-400" : "border-primary-300"}`}
-            >
-              <div>
-                <p className="font-medium">
-                  {a.actionType} {a.title ? `— ${a.title}` : ""}{" "}
-                  {a.amount ? `(Rs ${Number(a.amount).toLocaleString()})` : ""}
-                </p>
-                {a.description && (
-                  <p className="text-gray-500">{a.description}</p>
-                )}
-                <p className="text-xs text-gray-400">
-                  {a.performedBy?.name} ({a.performedByRole}) ·{" "}
-                  {new Date(a.createdAt).toLocaleString()}
-                </p>
-              </div>
-              {a.amount && !a.isDeleted && (
-                <button
-                  className="btn-secondary text-xs whitespace-nowrap"
-                  onClick={() =>
-                    setSlip({
-                      title: a.actionType,
-                      sessionType: "Fall",
-                      sessionYear: new Date().getFullYear(),
-                      rollNo: application.student?.enrollmentNumber,
-                      program: application.student?.program,
-                      amount: a.amount,
-                      preparedBy: a.performedBy?.name || user?.name,
-                      extra: {},
-                    })
-                  }
+          {(() => {
+            // Corrections are appended, never overwritten — an entry that
+            // was later corrected has its id referenced by a newer row's
+            // originalActionId. Flag those so the old (now-superseded)
+            // value reads clearly instead of looking like a duplicate.
+            const correctedIds = new Set(
+              actions
+                .filter((a) => a.originalActionId)
+                .map((a) => a.originalActionId),
+            );
+            return actions.map((a) => {
+              const isSuperseded = correctedIds.has(a.id);
+              const isEditing = editingActionId === a.id;
+              return (
+                <div
+                  key={a.id}
+                  className={`text-sm border-l-4 pl-3 py-2 ${
+                    a.isDeleted
+                      ? "border-red-300 text-gray-400"
+                      : isSuperseded
+                        ? "border-gray-200 text-gray-400"
+                        : "border-primary-300"
+                  }`}
                 >
-                  🖨️ Generate Slip
-                </button>
-              )}
-            </div>
-          ))}
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <input
+                        className="input"
+                        placeholder="Title"
+                        value={editActionForm.title}
+                        onChange={(e) =>
+                          setEditActionForm({
+                            ...editActionForm,
+                            title: e.target.value,
+                          })
+                        }
+                      />
+                      <input
+                        className="input"
+                        type="number"
+                        placeholder="Amount"
+                        value={editActionForm.amount}
+                        onChange={(e) =>
+                          setEditActionForm({
+                            ...editActionForm,
+                            amount: e.target.value,
+                          })
+                        }
+                      />
+                      <textarea
+                        className="input"
+                        placeholder="Description"
+                        value={editActionForm.description}
+                        onChange={(e) =>
+                          setEditActionForm({
+                            ...editActionForm,
+                            description: e.target.value,
+                          })
+                        }
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          className="btn-primary text-xs"
+                          onClick={() => handleSaveActionEdit(a.id)}
+                          disabled={savingActionEdit}
+                        >
+                          {savingActionEdit ? "Saving…" : "Save Correction"}
+                        </button>
+                        <button
+                          className="btn-secondary text-xs"
+                          onClick={cancelEditAction}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-medium">
+                          {a.actionType} {a.title ? `— ${a.title}` : ""}{" "}
+                          {a.amount
+                            ? `(Rs ${Number(a.amount).toLocaleString()})`
+                            : ""}
+                          {isSuperseded && (
+                            <span className="ml-2 text-xs font-normal text-amber-600">
+                              corrected below ↓
+                            </span>
+                          )}
+                          {a.originalActionId && (
+                            <span className="ml-2 text-xs font-normal text-blue-600">
+                              (correction)
+                            </span>
+                          )}
+                        </p>
+                        {a.description && (
+                          <p className="text-gray-500">{a.description}</p>
+                        )}
+                        <p className="text-xs text-gray-400">
+                          {a.performedBy?.name} ({a.performedByRole}) ·{" "}
+                          {new Date(a.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        {canEditAuditEntry && !a.isDeleted && !isSuperseded && (
+                          <button
+                            className="btn-secondary text-xs whitespace-nowrap"
+                            onClick={() => startEditAction(a)}
+                          >
+                            ✏️ Edit
+                          </button>
+                        )}
+                        {a.amount && !a.isDeleted && (
+                          <button
+                            className="btn-secondary text-xs whitespace-nowrap"
+                            onClick={() =>
+                              setSlip({
+                                title: a.actionType,
+                                sessionType: "Fall",
+                                sessionYear: new Date().getFullYear(),
+                                rollNo: application.student?.enrollmentNumber,
+                                program: application.student?.program,
+                                amount: a.amount,
+                                preparedBy: a.performedBy?.name || user?.name,
+                                extra: {},
+                              })
+                            }
+                          >
+                            🖨️ Generate Slip
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            });
+          })()}
         </div>
       </div>
 
