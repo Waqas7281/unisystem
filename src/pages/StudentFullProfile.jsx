@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import {
@@ -143,22 +143,34 @@ function StudentSearch({ onSelect }) {
 
 function BasicInfoSection({ student, canEdit }) {
   const [updateStudent, { isLoading: saving }] = useUpdateStudentMutation();
-  const [form, setForm] = useState({
-    registrationId: student.registrationId || "",
-    cnic: student.cnic || "",
-    rollNo: student.rollNo || "",
-    fatherName: student.fatherName || "",
-    program: student.program || "",
-    section: student.section || "",
-    semesterSystem: student.semesterSystem || "",
-    email: student.email || "",
-    matricBoard: student.matricBoard || "",
-    matricRollNo: student.matricRollNo || "",
-    matricYear: student.matricYear || "",
-    interBoard: student.interBoard || "",
-    interRollNo: student.interRollNo || "",
-    interYear: student.interYear || "",
+
+  const buildFormFromStudent = (s) => ({
+    registrationId: s.registrationId || "",
+    cnic: s.cnic || "",
+    rollNo: s.rollNo || "",
+    fatherName: s.fatherName || "",
+    program: s.program || "",
+    section: s.section || "",
+    semesterSystem: s.semesterSystem || "",
+    email: s.email || "",
+    matricBoard: s.matricBoard || "",
+    matricRollNo: s.matricRollNo || "",
+    matricYear: s.matricYear || "",
+    interBoard: s.interBoard || "",
+    interRollNo: s.interRollNo || "",
+    interYear: s.interYear || "",
   });
+
+  const [form, setForm] = useState(() => buildFormFromStudent(student));
+
+  // Belt-and-suspenders against the `key` prop fix relying on the parent
+  // always remembering to set it: whenever a DIFFERENT student object
+  // arrives (compared by id), re-seed the form from it explicitly. This
+  // fires even if this component instance never unmounts/remounts.
+  useEffect(() => {
+    setForm(buildFormFromStudent(student));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [student.id]);
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
@@ -1296,6 +1308,10 @@ export default function StudentFullProfile() {
   const [studentId, setStudentId] = useState(null);
   const { data: liveStudent } = useGetStudentQuery(studentId, {
     skip: !studentId,
+    // Belt-and-suspenders against any stale cache: force a fresh network
+    // fetch every time studentId changes, instead of trusting whatever
+    // RTK Query already has cached for this id.
+    refetchOnMountOrArgChange: true,
   });
 
   return (
@@ -1335,7 +1351,15 @@ export default function StudentFullProfile() {
             </button>
           </div>
 
-          <BasicInfoSection student={liveStudent} canEdit={canEdit} />
+          {/* key={studentId} forces this component to fully remount when a
+              different student is opened — otherwise its internal `form`
+              state (seeded once via useState) keeps showing the PREVIOUS
+              student's values until a manual page refresh. */}
+          <BasicInfoSection
+            key={studentId}
+            student={liveStudent}
+            canEdit={canEdit}
+          />
           <AcademicRecordsSection studentId={studentId} canEdit={canEdit} />
           <FeeSection student={liveStudent} canEdit={canEdit} />
           <LettersSection studentId={studentId} canEdit={canEdit} />

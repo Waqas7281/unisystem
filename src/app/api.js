@@ -92,7 +92,11 @@ export const api = createApi({
     }),
     getStudent: builder.query({
       query: (id) => `/students/${id}`,
-      providesTags: ["Students"],
+      // Per-id tag (not the blanket "Students" tag) so that updating one
+      // student never leaves a stale cached copy of a DIFFERENT student
+      // sitting around — each student's cache entry is invalidated only
+      // by its own id.
+      providesTags: (result, error, id) => [{ type: "Students", id }],
     }),
     createStudent: builder.mutation({
       query: (body) => ({ url: "/students", method: "POST", body }),
@@ -104,7 +108,10 @@ export const api = createApi({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: ["Students"],
+      invalidatesTags: (result, error, { id }) => [
+        "Students",
+        { type: "Students", id },
+      ],
     }),
     deleteStudent: builder.mutation({
       query: (id) => ({ url: `/students/${id}`, method: "DELETE" }),
