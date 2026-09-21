@@ -21,12 +21,14 @@ import StudentFullProfile from "./pages/StudentFullProfile";
 import ClearanceSlip from "./pages/ClearanceSlip";
 import ClearanceScanner from "./pages/ClearanceScanner";
 import SlipLookup from "./pages/SlipLookup";
+import Unauthorized from "./pages/Unauthorized";
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/unauthorized" element={<Unauthorized />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
 

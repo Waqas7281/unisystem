@@ -1,17 +1,43 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { forceLogout } from "./authSlice";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
+// Backend ka error kabhi string hota hai, kabhi { message, error, statusCode }
+export const getErrorMessage = (data) => {
+  const m = data?.message;
+  return typeof m === "string" ? m : m?.message;
+};
+
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: API_URL,
+  prepareHeaders: (headers, { getState }) => {
+    const token = getState().auth.token;
+    if (token) headers.set("authorization", `Bearer ${token}`);
+    return headers;
+  },
+});
+
+// Har request isi se guzarti hai. Token hote hue 401 aaye to foran logout.
+const baseQueryWithAuth = async (args, apiCtx, extraOptions) => {
+  const result = await rawBaseQuery(args, apiCtx, extraOptions);
+
+  if (
+    result.error?.status === 401 &&
+    apiCtx.endpoint !== "login" && // login form ka galat password "kick out" nahi hai
+    apiCtx.getState().auth.token // pehle se logout ho chuka to late 401 ignore
+  ) {
+    const code = getErrorMessage(result.error.data);
+    const reason = code === "ACCOUNT_BLOCKED" ? "blocked" : "expired";
+    apiCtx.dispatch(forceLogout(reason));
+    apiCtx.dispatch(api.util.resetApiState());
+  }
+  return result;
+};
+
 export const api = createApi({
   reducerPath: "api",
-  baseQuery: fetchBaseQuery({
-    baseUrl: API_URL,
-    prepareHeaders: (headers, { getState }) => {
-      const token = getState().auth.token;
-      if (token) headers.set("authorization", `Bearer ${token}`);
-      return headers;
-    },
-  }),
+  baseQuery: baseQueryWithAuth,
   tagTypes: [
     "Users",
     "Students",
@@ -39,7 +65,11 @@ export const api = createApi({
     resetPassword: builder.mutation({
       query: (body) => ({ url: "/auth/reset-password", method: "POST", body }),
     }),
+    getMe: builder.query({
+      query: () => "/auth/me",
+    }),
 
+    // ---- Dashboard ----
     // ---- Dashboard ----
     getDashboardSummary: builder.query({
       query: () => "/dashboard/summary",
@@ -499,6 +529,7 @@ export const {
   useLoginMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,
+  useGetMeQuery,
   useGetDashboardSummaryQuery,
   useGetUsersQuery,
   useCreateUserMutation,
