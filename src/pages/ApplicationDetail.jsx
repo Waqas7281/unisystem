@@ -389,7 +389,11 @@ export default function ApplicationDetail() {
         preparedBy: slip.preparedBy,
         extra: slip.extra,
       }).unwrap();
-      setSlip((prev) => ({ ...prev, serialNumber: saved.serialNumber }));
+      setSlip((prev) => ({
+        ...prev,
+        serialNumber: saved.serialNumber,
+        issuedBy: saved.issuedBy, // { id, name, role } — who actually printed it
+      }));
       toast.success(`Slip #${saved.serialNumber} saved`);
       setTimeout(() => window.print(), 50);
     } catch (err) {
@@ -996,7 +1000,11 @@ export default function ApplicationDetail() {
                                 rollNo: application.student?.enrollmentNumber,
                                 program: application.student?.program,
                                 amount: a.amount,
-                                preparedBy: a.performedBy?.name || user?.name,
+                                // Preview only — the backend always sets the
+                                // real "Prepared By" from whoever is logged
+                                // in when Print & Save is clicked, not from
+                                // who originally added this entry.
+                                preparedBy: user?.name,
                                 extra: {},
                               })
                             }

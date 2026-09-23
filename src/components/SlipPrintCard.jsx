@@ -88,6 +88,12 @@ function getSlipLayout(title) {
   return SLIP_LAYOUTS[(title || "").trim()] || SLIP_LAYOUTS.Other;
 }
 
+// "DataEntry" -> "Data Entry", "AccountsManager" -> "Accounts Manager"
+function formatRole(role) {
+  if (!role) return "";
+  return String(role).replace(/([a-z])([A-Z])/g, "$1 $2");
+}
+
 // Slip background image — public/assets/slip-bg.png.jfif (Vite serves
 // everything under /public from the site root).
 const SLIP_BG_URL = "/assets/slip-bg.png.jfif";
@@ -237,6 +243,11 @@ export default function SlipPrintCard({
           {slip.serialNumber && (
             <p className="relative text-right text-xs font-bold mt-2 print:mt-1">
               Slip # {String(slip.serialNumber).padStart(6, "0")}
+            </p>
+          )}
+          {slip.issuedBy?.role && (
+            <p className="relative text-right text-xs font-bold print:mt-0.5">
+              Printed by: {formatRole(slip.issuedBy.role)}
             </p>
           )}
         </div>

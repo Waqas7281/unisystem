@@ -49,6 +49,7 @@ export default function SlipLookup() {
             preparedBy: slip.preparedBy,
             extra: slip.extra || {},
             serialNumber: slip.serialNumber,
+            issuedBy: slip.issuedBy, // { id, name, role } — who printed it
           }}
           onPrint={() => window.print()}
         />
