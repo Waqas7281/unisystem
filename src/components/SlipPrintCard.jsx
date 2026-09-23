@@ -107,9 +107,9 @@ function SlipField({ label, value }) {
 
 // slip: { title, sessionType, sessionYear, rollNo, program, amount,
 //         preparedBy, extra, serialNumber? }
-// onChange: optional — pass to make session/year + hand-typed extra fields
-//           editable (used on ApplicationDetail before a serial is issued).
-//           Omit for a read-only historical slip (SlipLookup).
+// onChange: optional — pass to make title/program/session/year + hand-typed
+//           extra fields editable (used on ApplicationDetail before a serial
+//           is issued). Omit for a read-only historical slip (SlipLookup).
 // onPrint: what happens when "Print Slip" is clicked (parent decides
 //          whether that means "save then print" or just "print").
 // onClose: optional — shows a Close button.
@@ -241,6 +241,31 @@ export default function SlipPrintCard({
           )}
         </div>
       </div>
+
+      {editable && (
+        <div className="flex flex-wrap items-center justify-center gap-2 print:hidden">
+          <input
+            className="input w-56"
+            list="slip-title-options"
+            placeholder="Slip Title"
+            value={slip.title}
+            onChange={(e) => onChange({ ...slip, title: e.target.value })}
+            title="Slip ka title yahan likh ya change kar saktay hain — jo bhi likhein wohi print ho ga"
+          />
+          <datalist id="slip-title-options">
+            {SLIP_TITLE_OPTIONS.map((t) => (
+              <option key={t} value={t} />
+            ))}
+          </datalist>
+          <input
+            className="input w-56"
+            placeholder="Program"
+            value={slip.program || ""}
+            onChange={(e) => onChange({ ...slip, program: e.target.value })}
+            title="Program ka naam yahan customize kar saktay hain"
+          />
+        </div>
+      )}
 
       {editable && editableKeys.length > 0 && (
         <div className="flex flex-wrap items-center justify-center gap-2 print:hidden">
