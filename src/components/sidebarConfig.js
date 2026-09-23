@@ -12,6 +12,7 @@ export const SIDEBAR_CONFIG = {
     { label: "Department History", path: "/accounts-history" },
     { label: "Generate Slip", path: "/clearance-slip" },
     { label: "Scan Slip", path: "/clearance-scanner" },
+    { label: "Search Slip", path: "/slip-lookup" },
     { label: "User Management", path: "/users" },
   ],
   AccountsManager: [
@@ -20,6 +21,7 @@ export const SIDEBAR_CONFIG = {
     { label: "Fee Detail", path: "/students?mode=fee" },
     { label: "Students", path: "/students" },
     { label: "Generate Slip", path: "/clearance-slip" },
+    { label: "Search Slip", path: "/slip-lookup" },
     { label: "Scan Slip", path: "/clearance-scanner" },
   ],
   StudentAffair: [
@@ -27,12 +29,14 @@ export const SIDEBAR_CONFIG = {
     { label: "Applications", path: "/applications" },
     { label: "Fee Detail", path: "/students?mode=fee" },
     { label: "Students", path: "/students" },
+    { label: "Search Slip", path: "/slip-lookup" },
     { label: "Scan Slip", path: "/clearance-scanner" },
     { label: "Full Student Profile", path: "/full-profile" },
   ],
   DataEntry: [
     { label: "Create Application", path: "/create-application" },
     { label: "My Applications", path: "/applications" },
+    { label: "Search Slip", path: "/slip-lookup" },
   ],
   RecordRoom: [
     { label: "Applications", path: "/applications" },
@@ -52,6 +56,7 @@ export const SIDEBAR_CONFIG = {
     { label: "HR", path: "/hr" },
     { label: "Department History", path: "/accounts-history" },
     { label: "Generate Slip", path: "/clearance-slip" },
+    { label: "Search Slip", path: "/slip-lookup" },
     { label: "Scan Slip", path: "/clearance-scanner" },
   ],
   AdmissionCenter: [{ label: "Admission Center", path: "/admission-center" }],
