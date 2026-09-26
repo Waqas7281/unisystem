@@ -20,6 +20,7 @@ import {
 import SlipPrintCard, {
   SLIP_TITLE_OPTIONS,
   SESSION_TYPES,
+  printSlip,
 } from "../components/SlipPrintCard";
 
 const MAX_PHOTO_BYTES = 800 * 1024; // 800KB cap, matches backend check
@@ -373,7 +374,7 @@ export default function ApplicationDetail() {
   const handlePrintSlip = async () => {
     if (!slip) return;
     if (slip.serialNumber) {
-      window.print();
+      printSlip(slip);
       return;
     }
     try {
@@ -395,7 +396,15 @@ export default function ApplicationDetail() {
         issuedBy: saved.issuedBy, // { id, name, role } — who actually printed it
       }));
       toast.success(`Slip #${saved.serialNumber} saved`);
-      setTimeout(() => window.print(), 50);
+      setTimeout(
+        () =>
+          printSlip({
+            ...slip,
+            serialNumber: saved.serialNumber,
+            issuedBy: saved.issuedBy,
+          }),
+        50,
+      );
     } catch (err) {
       toast.error(err?.data?.message || "Failed to save slip");
     }

@@ -209,6 +209,20 @@ export const api = createApi({
       query: (serialNumber) => `/slips/${encodeURIComponent(serialNumber)}`,
       providesTags: ["Slips"],
     }),
+    // Recent slips + Enrollment/Name/Type filters — how a lost/misplaced
+    // slip's existing serial number is found again instead of generating
+    // a new one.
+    searchSlips: builder.query({
+      query: (params) => {
+        const qs = new URLSearchParams(
+          Object.entries(params || {}).filter(
+            ([, v]) => v !== undefined && v !== null && v !== "",
+          ),
+        ).toString();
+        return `/slips${qs ? `?${qs}` : ""}`;
+      },
+      providesTags: ["Slips"],
+    }),
 
     // ---- Fees ----
     getStudentFees: builder.query({
@@ -601,6 +615,7 @@ export const {
   useVerifyClearanceTokenMutation,
   useCreateSlipMutation,
   useLazyGetSlipBySerialQuery,
+  useSearchSlipsQuery,
   useAssignApplicationStageMutation,
   useAcceptApplicationStageMutation,
   useRaiseApplicationIssueMutation,
