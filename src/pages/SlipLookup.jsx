@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { useLazyGetSlipBySerialQuery, useSearchSlipsQuery } from "../app/api";
 import SlipPrintCard, {
   printSlip,
@@ -24,6 +25,11 @@ function toPreviewSlip(slip) {
 }
 
 export default function SlipLookup() {
+  // AccountsManager role: View/Print button stays hidden on this page
+  // (frontend-only restriction — nothing changed on the backend).
+  const user = useSelector((state) => state.auth.user);
+  const canPrint = user?.role !== "AccountsManager";
+
   // ---- Exact serial number box (unchanged) ----
   const [serialInput, setSerialInput] = useState("");
   const [triggerBySerial, { data: serialSlip, isFetching, isError, error }] =
@@ -191,12 +197,14 @@ export default function SlipLookup() {
                       : "—"}
                   </td>
                   <td className="py-2 pr-3">
-                    <button
-                      className="btn-secondary"
-                      onClick={() => setSelected(row)}
-                    >
-                      View / Print
-                    </button>
+                    {canPrint && (
+                      <button
+                        className="btn-secondary"
+                        onClick={() => setSelected(row)}
+                      >
+                        View / Print
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -241,12 +249,17 @@ export default function SlipLookup() {
         </div>
       </div>
 
-      {previewSlip && (
+      {previewSlip && canPrint && (
         <SlipPrintCard
           slip={previewSlip}
           onPrint={() => printSlip(previewSlip)}
           onClose={() => setSelected(null)}
         />
+      )}
+      {previewSlip && !canPrint && (
+        <p className="text-sm text-gray-400">
+          Aapke role ke liye is page par print access nahi hai.
+        </p>
       )}
     </div>
   );
