@@ -33,4 +33,10 @@ export const WALLPAPERS = [
     type: "video",
     src: "https://mylivewallpapers.com/wp-content/uploads/Fantasy/PREVIEW-Corrupted-Knight.mp4",
   },
+  {
+    id: "computer",
+    name: "computer",
+    type: "video",
+    src: "https://cdn.pixabay.com/video/2025/10/23/311619_large.mp4",
+  },
 ];
