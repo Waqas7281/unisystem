@@ -22,6 +22,8 @@ import ClearanceSlip from "./pages/ClearanceSlip";
 import ClearanceScanner from "./pages/ClearanceScanner";
 import SlipLookup from "./pages/SlipLookup";
 import Unauthorized from "./pages/Unauthorized";
+import LeaveApplications from "./pages/LeaveApplications";
+import LeaveApplicationDetail from "./pages/LeaveApplicationDetail";
 
 export default function App() {
   return (
@@ -181,6 +183,26 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={["HR", "Manager", "Registrar"]}>
               <HR />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/leave-applications"
+          element={
+            <ProtectedRoute
+              allowedRoles={["RecordRoom", "Manager", "Registrar"]}
+            >
+              <LeaveApplications />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/leave-applications/:id"
+          element={
+            <ProtectedRoute
+              allowedRoles={["RecordRoom", "Manager", "Registrar"]}
+            >
+              <LeaveApplicationDetail />
             </ProtectedRoute>
           }
         />

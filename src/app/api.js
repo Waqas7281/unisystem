@@ -53,6 +53,7 @@ export const api = createApi({
     "StaffLeaves",
     "AuditLog",
     "Slips",
+    "LeaveApplications",
   ],
   endpoints: (builder) => ({
     // ---- Auth ----
@@ -536,6 +537,32 @@ export const api = createApi({
       query: (body) => ({ url: "/hr/leaves", method: "POST", body }),
       invalidatesTags: ["StaffLeaves"],
     }),
+    // ---- Leave Applications ----
+    // ---- Leave Applications ----
+    getLeaveApplications: builder.query({
+      query: () => "/leave-applications",
+      providesTags: ["LeaveApplications"],
+    }),
+    getLeaveApplication: builder.query({
+      query: (id) => `/leave-applications/${id}`,
+      providesTags: ["LeaveApplications"],
+    }),
+    searchLeaveStudents: builder.query({
+      query: (q) =>
+        `/leave-applications/search-students?q=${encodeURIComponent(q)}`,
+    }),
+    createLeaveApplication: builder.mutation({
+      query: (body) => ({ url: "/leave-applications", method: "POST", body }),
+      invalidatesTags: ["LeaveApplications", "Notifications"],
+    }),
+    decideLeaveApplication: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/leave-applications/${id}/decide`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["LeaveApplications", "Notifications"],
+    }),
   }),
 });
 
@@ -620,4 +647,9 @@ export const {
   useAcceptApplicationStageMutation,
   useRaiseApplicationIssueMutation,
   useResolveApplicationIssueMutation,
+  useGetLeaveApplicationsQuery,
+  useGetLeaveApplicationQuery,
+  useCreateLeaveApplicationMutation,
+  useDecideLeaveApplicationMutation,
+  useLazySearchLeaveStudentsQuery,
 } = api;

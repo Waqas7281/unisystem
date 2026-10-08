@@ -9,6 +9,7 @@ export const SIDEBAR_CONFIG = {
     { label: "Academic Records", path: "/academic-records" },
     { label: "Admission Center", path: "/admission-center" },
     { label: "HR", path: "/hr" },
+    { label: "Leave Applications", path: "/leave-applications" },
     { label: "Department History", path: "/accounts-history" },
     { label: "Generate Slip", path: "/clearance-slip" },
     { label: "Scan Slip", path: "/clearance-scanner" },
@@ -41,6 +42,7 @@ export const SIDEBAR_CONFIG = {
   RecordRoom: [
     { label: "Applications", path: "/applications" },
     { label: "Academic Records", path: "/academic-records" },
+    { label: "Leave Application", path: "/leave-applications" },
   ],
   Exam: [{ label: "Applications", path: "/applications" }],
   // Registrar can view every page in the project.
@@ -54,6 +56,7 @@ export const SIDEBAR_CONFIG = {
     { label: "Academic Records", path: "/academic-records" },
     { label: "Admission Center", path: "/admission-center" },
     { label: "HR", path: "/hr" },
+    { label: "Leave Applications", path: "/leave-applications" },
     { label: "Department History", path: "/accounts-history" },
     { label: "Generate Slip", path: "/clearance-slip" },
     { label: "Search Slip", path: "/slip-lookup" },

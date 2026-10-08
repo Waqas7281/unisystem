@@ -26,6 +26,8 @@ export default function NotificationBell() {
     setOpen(false);
     if (n.referenceType === "Application" && n.referenceId) {
       navigate(`/applications/${n.referenceId}`);
+    } else if (n.referenceType === "LeaveApplication" && n.referenceId) {
+      navigate(`/leave-applications/${n.referenceId}`);
     } else if (n.referenceType === "Student" && n.referenceId) {
       navigate(`/students/${n.referenceId}/fee`);
     }
