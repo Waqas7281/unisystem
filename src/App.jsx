@@ -24,6 +24,7 @@ import SlipLookup from "./pages/SlipLookup";
 import Unauthorized from "./pages/Unauthorized";
 import LeaveApplications from "./pages/LeaveApplications";
 import LeaveApplicationDetail from "./pages/LeaveApplicationDetail";
+import WallpaperGallery from "./pages/WallpaperGallery";
 
 export default function App() {
   return (
@@ -53,6 +54,15 @@ export default function App() {
               ]}
             >
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/wallpapers"
+          element={
+            <ProtectedRoute allowedRoles={["DataEntry"]}>
+              <WallpaperGallery />
             </ProtectedRoute>
           }
         />

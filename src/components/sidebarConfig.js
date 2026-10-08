@@ -38,6 +38,7 @@ export const SIDEBAR_CONFIG = {
     { label: "Create Application", path: "/create-application" },
     { label: "My Applications", path: "/applications" },
     { label: "Search Slip", path: "/slip-lookup" },
+    { label: "Wallpapers", path: "/wallpapers" },
   ],
   RecordRoom: [
     { label: "Applications", path: "/applications" },

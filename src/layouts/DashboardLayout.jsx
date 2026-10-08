@@ -4,6 +4,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../app/authSlice";
 import { SIDEBAR_CONFIG, ROLE_LABELS } from "../components/sidebarConfig";
 import NotificationBell from "../components/NotificationBell";
+import WallpaperBackground from "../components/WallpaperBackground";
+import useWallpaper from "../hooks/useWallpaper";
 import { useGetMeQuery } from "../app/api";
 
 export default function DashboardLayout() {
@@ -11,6 +13,7 @@ export default function DashboardLayout() {
   const user = useSelector((state) => state.auth.user);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [wallpaperId] = useWallpaper(user?.id);
 
   // Har 10 second backend se poochta hai "kya main abhi bhi allowed hoon?"
   // Block hua to 401 aayega aur user khud logout ho kar Unauthorized page dekhega.
@@ -19,15 +22,26 @@ export default function DashboardLayout() {
   if (!user) return null;
   const links = SIDEBAR_CONFIG[user.role] || [];
 
+  // Wallpaper sirf DataEntry ke liye. Baaki roles ka layout pehle jaisa.
+  const isDataEntry = user.role === "DataEntry";
+
   const handleLogout = () => {
     dispatch(logout());
     navigate("/login");
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div
+      className={`min-h-screen flex bg-gray-50${isDataEntry ? " relative" : ""}`}
+    >
+      {isDataEntry && <WallpaperBackground id={wallpaperId} />}
+
       {/* Sidebar - desktop */}
-      <aside className="hidden md:flex md:flex-col w-64 bg-white border-r border-gray-200">
+      <aside
+        className={`hidden md:flex md:flex-col w-64 bg-white border-r border-gray-200${
+          isDataEntry ? " relative z-10" : ""
+        }`}
+      >
         <div className="px-5 py-5 border-b">
           <h1 className="font-bold text-lg text-primary-700">🎓 UniSystem</h1>
           <p className="text-xs text-gray-400 mt-1">{ROLE_LABELS[user.role]}</p>
@@ -108,7 +122,11 @@ export default function DashboardLayout() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div
+        className={`flex-1 flex flex-col min-w-0${
+          isDataEntry ? " relative z-10" : ""
+        }`}
+      >
         <header className="h-16 bg-white border-b flex items-center justify-between px-4 md:px-6">
           <button
             className="md:hidden text-xl"

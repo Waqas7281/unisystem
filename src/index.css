@@ -209,4 +209,41 @@ table.data-table td {
     animation: none;
   }
 }
+/* ---- Animated wallpapers (DataEntry) ---- */
+@keyframes wp-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.wp-aurora {
+  background: linear-gradient(120deg, #0f2027, #2c5364, #00c9a7, #7f5af0, #0f2027);
+  background-size: 300% 300%;
+  animation: wp-shift 14s ease infinite;
+}
+.wp-sunset {
+  background: linear-gradient(120deg, #ff9966, #ff5e62, #a44ee0, #ff9966);
+  background-size: 300% 300%;
+  animation: wp-shift 14s ease infinite;
+}
+.wp-ocean {
+  background: linear-gradient(120deg, #2193b0, #6dd5ed, #1d4350, #2193b0);
+  background-size: 300% 300%;
+  animation: wp-shift 14s ease infinite;
+}
+
+/* Jin users ne "reduce motion" on kiya ho unke liye animation band */
+@media (prefers-reduced-motion: reduce) {
+  .wp-aurora,
+  .wp-sunset,
+  .wp-ocean {
+    animation: none;
+  }
+}
 }
