@@ -75,6 +75,7 @@ export default function App() {
                 "AccountsManager",
                 "StudentAffair",
                 "Registrar",
+                "DataEntry",
               ]}
             >
               <Students />
@@ -90,6 +91,7 @@ export default function App() {
                 "AccountsManager",
                 "StudentAffair",
                 "Registrar",
+                "DataEntry",
               ]}
             >
               <StudentFeePage />
@@ -182,7 +184,12 @@ export default function App() {
           path="/admission-center"
           element={
             <ProtectedRoute
-              allowedRoles={["AdmissionCenter", "Manager", "Registrar"]}
+              allowedRoles={[
+                "AdmissionCenter",
+                "DataEntry",
+                "Manager",
+                "Registrar",
+              ]}
             >
               <AdmissionCenter />
             </ProtectedRoute>

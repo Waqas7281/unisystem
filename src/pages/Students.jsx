@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   useGetStudentsQuery,
@@ -269,6 +269,10 @@ export default function Students() {
       fileRef.current.value = "";
     }
   };
+
+  if (user?.role === "DataEntry" && !isFeeMode) {
+    return <Navigate to="/students?mode=fee" replace />;
+  }
 
   return (
     <div className="space-y-5">

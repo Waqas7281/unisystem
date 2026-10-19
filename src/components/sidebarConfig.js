@@ -37,6 +37,8 @@ export const SIDEBAR_CONFIG = {
   DataEntry: [
     { label: "Create Application", path: "/create-application" },
     { label: "My Applications", path: "/applications" },
+    { label: "Admission Center", path: "/admission-center" },
+    { label: "Fee Detail", path: "/students?mode=fee" },
     { label: "Search Slip", path: "/slip-lookup" },
     { label: "Wallpapers", path: "/wallpapers" },
   ],
