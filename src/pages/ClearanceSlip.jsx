@@ -6,9 +6,115 @@ import {
   useLazySearchClearanceStudentQuery,
   useGenerateClearanceSlipMutation,
 } from "../app/api";
-
 const DEFAULT_TERM = "Final Term Spring-2026";
 const DEFAULT_BG = "#f5a623"; // matches the orange sample slip
+
+// Slip background image: public/assets/clearance-slip-bg.png
+const CLEARANCE_BG_URL = "/assets/clearance-slip-bg.png";
+const CLEARANCE_ASPECT_RATIO = "2109 / 746";
+
+function escHtml(value) {
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[c],
+  );
+}
+
+// Fine slip ki tarah: sirf ye slip ek alag print window mein khulti hai,
+// is liye app ka sidebar/layout print mein nahi aata aur blank page nahi banta.
+function printClearanceSlip(slip, canvas) {
+  if (!slip) return;
+  const qrDataUrl = canvas ? canvas.toDataURL("image/png") : "";
+  const bgUrl = `${window.location.origin}${CLEARANCE_BG_URL}`;
+  const validTill = new Date(slip.expiresAt).toLocaleDateString();
+
+  const html = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Clearance Slip</title>
+<style>
+  @page { margin: 6mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #111111; }
+  .slip {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    aspect-ratio: ${CLEARANCE_ASPECT_RATIO};
+    container-type: inline-size;
+    overflow: hidden;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .text {
+    position: absolute; left: 24%; top: 11%; width: 56%; height: 74%;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  h2 { text-align: center; font-size: 3.4cqw; font-weight: 700; margin: 0; line-height: 1.2; }
+  .term { text-align: center; font-weight: 600; font-size: 1.9cqw; margin: 0.6cqw 0 2.2cqw; }
+  .body { font-size: 1.8cqw; line-height: 1.75; margin: 0; }
+  .u { font-weight: 600; border-bottom: 1px solid #444; padding: 0 0.4cqw; }
+  .qr {
+    position: absolute; left: 83%; top: 28.5%; width: 15%; height: 39%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4cqw;
+  }
+  .qr img { width: 74%; height: auto; }
+  .qr p { font-size: 0.95cqw; font-weight: 600; margin: 0; }
+  .valid { position: absolute; left: 24%; bottom: 8%; margin: 0; font-size: 1.1cqw; color: #333333; }
+</style>
+</head>
+<body>
+  <div class="slip">
+    <img class="bg" src="${bgUrl}" alt="" />
+    <div class="text">
+      <h2>Clearance Slip</h2>
+      <p class="term">${escHtml(slip.term)}</p>
+      <p class="body">
+        This is to certify that Mr./Ms.
+        <span class="u">${escHtml(slip.student.name)}</span>,
+        Roll Number <span class="u">${escHtml(slip.student.rollNumber)}</span>
+        Department <span class="u">${escHtml(slip.student.department || "—")}</span>,
+        has cleared all outstanding dues and is allowed to appear in the
+        ${escHtml(slip.term)} examination.
+      </p>
+    </div>
+    <div class="qr">
+      <img src="${qrDataUrl}" alt="QR" />
+      <p>Accounts Manager</p>
+    </div>
+    <p class="valid">Valid till ${escHtml(validTill)} · Scan once per day to verify</p>
+  </div>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank", "width=980,height=460");
+  if (!win) {
+    alert(
+      "Popup blocked — is site ke liye popups allow karein taake slip print ho sake.",
+    );
+    return;
+  }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+
+  // Image load hone ke baad hi print, warna blank/black print aata hai
+  win.onload = () => {
+    win.focus();
+    setTimeout(() => win.print(), 60);
+  };
+  win.onafterprint = () => win.close();
+}
 
 function SlipPreview({ slip }) {
   const canvasRef = useRef(null);
@@ -34,8 +140,8 @@ function SlipPreview({ slip }) {
         style={{
           width: "900px",
           maxWidth: "100%",
-          aspectRatio: "2109 / 746",
-          backgroundImage: "url('/assets/clearance-slip-bg.png')",
+          aspectRatio: CLEARANCE_ASPECT_RATIO,
+          backgroundImage: `url('${CLEARANCE_BG_URL}')`,
           backgroundSize: "100% 100%",
           backgroundRepeat: "no-repeat",
           backgroundPosition: "center",
@@ -135,7 +241,10 @@ function SlipPreview({ slip }) {
       </div>
 
       <div className="flex justify-center gap-2 print:hidden">
-        <button className="btn-primary" onClick={() => window.print()}>
+        <button
+          className="btn-primary"
+          onClick={() => printClearanceSlip(slip, canvasRef.current)}
+        >
           🖨️ Print Slip
         </button>
       </div>
