@@ -252,6 +252,7 @@ export default function App() {
                 "AccountsManager",
                 "StudentAffair",
                 "Registrar",
+                "ScanSlip",
               ]}
             >
               <ClearanceScanner />

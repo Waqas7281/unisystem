@@ -67,6 +67,7 @@ export const SIDEBAR_CONFIG = {
   ],
   AdmissionCenter: [{ label: "Admission Center", path: "/admission-center" }],
   HR: [{ label: "HR", path: "/hr" }],
+  ScanSlip: [{ label: "Scan Slip", path: "/clearance-scanner" }],
 };
 
 export const ROLE_LABELS = {
@@ -79,4 +80,5 @@ export const ROLE_LABELS = {
   Registrar: "Registrar",
   AdmissionCenter: "Admission Center",
   HR: "HR",
+  ScanSlip: "Scan Slip",
 };

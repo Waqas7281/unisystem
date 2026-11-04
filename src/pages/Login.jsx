@@ -16,6 +16,7 @@ const ROLES = [
   "DataEntry",
   "AdmissionCenter",
   "HR",
+  "ScanSlip",
 ];
 
 function SealMedallion() {
@@ -97,7 +98,9 @@ export default function Login() {
                 ? "/admission-center"
                 : role === "HR"
                   ? "/hr"
-                  : "/dashboard",
+                  : role === "ScanSlip"
+                    ? "/clearance-scanner"
+                    : "/dashboard",
       );
     } catch (err) {
       toast.error(
