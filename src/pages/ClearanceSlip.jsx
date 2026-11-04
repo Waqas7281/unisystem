@@ -16,9 +16,9 @@ function SlipPreview({ slip }) {
   useEffect(() => {
     if (!slip || !canvasRef.current) return;
     QRCode.toCanvas(canvasRef.current, slip.token, {
-      width: 110,
-      margin: 1,
-      color: { dark: "#1a1a1a", light: "#ffffff00" },
+      width: 400,
+      margin: 0,
+      color: { dark: "#111111", light: "#ffffff" },
     }).catch(() => {});
   }, [slip]);
 
@@ -30,41 +30,106 @@ function SlipPreview({ slip }) {
     <div className="space-y-3">
       <div
         id="clearance-slip-printable"
-        className="mx-auto rounded-lg shadow-md p-8 relative"
+        className="mx-auto relative overflow-hidden"
         style={{
-          background: slip.backgroundColor || DEFAULT_BG,
-          width: "700px",
+          width: "900px",
           maxWidth: "100%",
-          minHeight: "260px",
-          color: "#1a1a1a",
+          aspectRatio: "2109 / 746",
+          backgroundImage: "url('/assets/clearance-slip-bg.png')",
+          backgroundSize: "100% 100%",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center",
+          containerType: "inline-size",
+          color: "#111111",
+          WebkitPrintColorAdjust: "exact",
+          printColorAdjust: "exact",
         }}
       >
-        <h2 className="text-center text-2xl font-bold mb-1">Clearance Slip</h2>
-        <p className="text-center font-semibold mb-6">{slip.term}</p>
+        {/* Text area (beech ka hissa) */}
+        <div
+          style={{
+            position: "absolute",
+            left: "24%",
+            top: "11%",
+            width: "56%",
+            height: "74%",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+          }}
+        >
+          <h2
+            style={{
+              textAlign: "center",
+              fontSize: "3.4cqw",
+              fontWeight: 700,
+              margin: 0,
+              lineHeight: 1.2,
+            }}
+          >
+            Clearance Slip
+          </h2>
+          <p
+            style={{
+              textAlign: "center",
+              fontWeight: 600,
+              fontSize: "1.9cqw",
+              margin: "0.6cqw 0 2.2cqw",
+            }}
+          >
+            {slip.term}
+          </p>
 
-        <p className="leading-8 text-[15px]">
-          This is to certify that Mr./Ms.{" "}
-          <span className="font-semibold border-b border-gray-700 px-1">
-            {slip.student.name}
-          </span>
-          , Roll Number{" "}
-          <span className="font-semibold border-b border-gray-700 px-1">
-            {slip.student.rollNumber}
-          </span>{" "}
-          Department{" "}
-          <span className="font-semibold border-b border-gray-700 px-1">
-            {slip.student.department || "—"}
-          </span>
-          , has cleared all outstanding dues and is allowed to appear in the{" "}
-          {slip.term} examination.
-        </p>
-
-        <div className="absolute right-8 bottom-6 flex flex-col items-center">
-          <canvas ref={canvasRef} />
-          <p className="text-xs font-semibold mt-1">Accounts Manager</p>
+          <p style={{ fontSize: "1.8cqw", lineHeight: 1.75, margin: 0 }}>
+            This is to certify that Mr./Ms.{" "}
+            <span className="font-semibold border-b border-gray-700 px-1">
+              {slip.student.name}
+            </span>
+            , Roll Number{" "}
+            <span className="font-semibold border-b border-gray-700 px-1">
+              {slip.student.rollNumber}
+            </span>{" "}
+            Department{" "}
+            <span className="font-semibold border-b border-gray-700 px-1">
+              {slip.student.department || "—"}
+            </span>
+            , has cleared all outstanding dues and is allowed to appear in the{" "}
+            {slip.term} examination.
+          </p>
         </div>
 
-        <p className="absolute left-8 bottom-6 text-[10px] text-gray-700">
+        {/* QR code: design ke right side wale box ke andar */}
+        <div
+          style={{
+            position: "absolute",
+            left: "83%",
+            top: "28.5%",
+            width: "15%",
+            height: "39%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.4cqw",
+          }}
+        >
+          <canvas ref={canvasRef} className="!w-[74%] !h-auto" />
+          <p style={{ fontSize: "0.95cqw", fontWeight: 600, margin: 0 }}>
+            Accounts Manager
+          </p>
+        </div>
+
+        {/* Neeche left: validity */}
+        <p
+          style={{
+            position: "absolute",
+            left: "24%",
+            bottom: "8%",
+            margin: 0,
+            fontSize: "1.1cqw",
+            color: "#333333",
+          }}
+        >
           Valid till {validTill} · Scan once per day to verify
         </p>
       </div>
