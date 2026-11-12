@@ -8,6 +8,7 @@ import { ForgotPassword, ResetPassword } from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Students from "./pages/Students";
 import StudentFeePage from "./pages/StudentFeePage";
+import DropOfScholarship from "./pages/DropOfScholarship";
 import Applications from "./pages/Applications";
 import AccountsHistory from "./pages/AccountsHistory";
 import ApplicationDetail from "./pages/ApplicationDetail";
@@ -95,6 +96,21 @@ export default function App() {
               ]}
             >
               <StudentFeePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/drop-scholarship"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "Manager",
+                "AccountsManager",
+                "StudentAffair",
+                "Registrar",
+              ]}
+            >
+              <DropOfScholarship />
             </ProtectedRoute>
           }
         />

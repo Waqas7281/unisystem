@@ -54,6 +54,7 @@ export const api = createApi({
     "AuditLog",
     "Slips",
     "LeaveApplications",
+    "Scholarship",
   ],
   endpoints: (builder) => ({
     // ---- Auth ----
@@ -277,6 +278,72 @@ export const api = createApi({
         body: formData,
       }),
       invalidatesTags: ["Fees", "CustomFields"],
+    }),
+
+    // ---- Scholarship ----
+    getScholarshipSessions: builder.query({
+      query: () => "/scholarship/sessions",
+      providesTags: ["Scholarship", "Fees"],
+    }),
+    getScholarship: builder.query({
+      query: ({ session, feeColumn }) => {
+        const params = new URLSearchParams({ session });
+        if (feeColumn) params.set("feeColumn", feeColumn);
+        return `/scholarship?${params.toString()}`;
+      },
+      providesTags: ["Scholarship", "Fees"],
+    }),
+    saveScholarshipAward: builder.mutation({
+      query: ({ studentId, ...body }) => ({
+        url: `/scholarship/award/${studentId}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Scholarship"],
+    }),
+    saveScholarshipAwardBulk: builder.mutation({
+      query: (body) => ({
+        url: "/scholarship/award-bulk",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Scholarship"],
+    }),
+    saveScholarshipCgpa: builder.mutation({
+      query: (body) => ({ url: "/scholarship/cgpa", method: "PATCH", body }),
+      invalidatesTags: ["Scholarship"],
+    }),
+    importScholarshipCgpa: builder.mutation({
+      query: (formData) => ({
+        url: "/scholarship/import-cgpa",
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["Scholarship"],
+    }),
+    importScholarshipAwards: builder.mutation({
+      query: (formData) => ({
+        url: "/scholarship/import-awards",
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["Scholarship"],
+    }),
+    postScholarshipDrop: builder.mutation({
+      query: (body) => ({
+        url: "/scholarship/post-drop",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Scholarship", "Fees"],
+    }),
+    reverseScholarshipPost: builder.mutation({
+      query: (body) => ({
+        url: "/scholarship/reverse-post",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Scholarship", "Fees"],
     }),
 
     // ---- Applications ----
@@ -598,6 +665,15 @@ export const {
   useUpdateFeeCustomFieldMutation,
   useDeleteFeeCustomFieldMutation,
   useImportFeesExcelMutation,
+  useGetScholarshipSessionsQuery,
+  useGetScholarshipQuery,
+  useSaveScholarshipAwardMutation,
+  useSaveScholarshipAwardBulkMutation,
+  useSaveScholarshipCgpaMutation,
+  useImportScholarshipCgpaMutation,
+  useImportScholarshipAwardsMutation,
+  usePostScholarshipDropMutation,
+  useReverseScholarshipPostMutation,
   useGetApplicationsQuery,
   useGetPendingApplicationsQuery,
   useGetApplicationQuery,

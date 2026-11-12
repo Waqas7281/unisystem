@@ -62,10 +62,7 @@ table.data-table td {
 
 .login-scene {
   font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  background:
-    radial-gradient(60% 55% at 18% 20%, rgba(217, 164, 65, 0.16), transparent 60%),
-    radial-gradient(50% 45% at 85% 78%, rgba(240, 168, 173, 0.14), transparent 60%),
-    linear-gradient(160deg, #14163a 0%, #211a45 48%, #341f52 100%);
+  background: linear-gradient(to bottom right, #1d4ed8 0%, #2563eb 50%, #1e3a8a 100%);
 }
 
 .login-display {
@@ -73,61 +70,61 @@ table.data-table td {
 }
 
 .login-glass {
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.20);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   box-shadow:
-    0 30px 60px -20px rgba(10, 6, 30, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 30px 60px -20px rgba(15, 23, 80, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .login-input {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #f6f1e7;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
 }
 .login-input::placeholder {
-  color: rgba(246, 241, 231, 0.38);
+  color: rgba(255, 255, 255, 0.5);
 }
 .login-input:focus {
   outline: none;
-  border-color: rgba(217, 164, 65, 0.65);
-  box-shadow: 0 0 0 3px rgba(217, 164, 65, 0.18);
+  border-color: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.22);
 }
 
 .login-role-pill {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: rgba(246, 241, 231, 0.72);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.06);
   transition: all 0.2s ease;
 }
 .login-role-pill:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #f6f1e7;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
 }
 .login-role-pill[data-active="true"] {
-  background: linear-gradient(135deg, #d9a441, #c47e3f);
+  background: #ffffff;
   border-color: transparent;
-  color: #1c1408;
+  color: #1d4ed8;
   font-weight: 600;
-  box-shadow: 0 6px 16px -6px rgba(217, 164, 65, 0.6);
+  box-shadow: 0 6px 16px -6px rgba(15, 23, 80, 0.5);
 }
 
 .login-cta {
-  background: linear-gradient(135deg, #e3b45a, #c47e3f);
-  color: #1c1408;
+  background: #ffffff;
+  color: #1d4ed8;
   box-shadow:
-    0 12px 24px -10px rgba(217, 164, 65, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+    0 12px 24px -10px rgba(15, 23, 80, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 .login-cta:hover:not(:disabled) {
   transform: translateY(-1px);
-  filter: brightness(1.05);
+  background: #f3f4f6;
   box-shadow:
-    0 16px 30px -10px rgba(217, 164, 65, 0.65),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    0 16px 30px -10px rgba(15, 23, 80, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 .login-cta:active:not(:disabled) {
   transform: translateY(0px) scale(0.99);
@@ -149,15 +146,15 @@ table.data-table td {
   50% { translate: 0 -14px; }
 }
 .medallion-ring-outer {
-  background: conic-gradient(from 180deg, #e3b45a, #8a5a2b, #e3b45a, #f3cd85, #e3b45a);
+  background: conic-gradient(from 180deg, #ffffff, #93c5fd, #ffffff, #dbeafe, #ffffff);
   box-shadow: 0 40px 70px -25px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08);
 }
 .medallion-ring-inner {
-  background: radial-gradient(circle at 35% 30%, #2c2050, #171334 70%);
+  background: radial-gradient(circle at 35% 30%, #2563eb, #1e3a8a 70%);
   box-shadow: inset 0 6px 18px rgba(0,0,0,0.55), inset 0 -4px 10px rgba(255,255,255,0.06);
 }
 .medallion-glyph {
-  color: #eecb87;
+  color: #ffffff;
   filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
 }
 .medallion-shine {
@@ -173,14 +170,13 @@ table.data-table td {
 
 
   /* Cute little "RR" signature badge on the login hero */
-/* Cute little "RR" signature badge on the login hero */
 .rr-badge {
-  background: linear-gradient(135deg, rgba(240, 168, 173, 0.95), rgba(217, 164, 65, 0.95));
-  color: #2a1638;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(219, 234, 254, 0.95));
+  color: #1e3a8a;
   letter-spacing: 0.08em;
   border: 1px solid rgba(255, 255, 255, 0.45);
   box-shadow:
-    0 10px 24px -8px rgba(217, 164, 65, 0.5),
+    0 10px 24px -8px rgba(15, 23, 80, 0.45),
     0 2px 6px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
   transform: rotate(4deg);
@@ -190,8 +186,8 @@ table.data-table td {
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: #2a1638;
-  box-shadow: 0 0 0 0 rgba(42, 22, 56, 0.5);
+  background: #1e3a8a;
+  box-shadow: 0 0 0 0 rgba(30, 58, 138, 0.5);
   animation: rr-pulse 2.2s ease-in-out infinite;
 }
 @keyframes rr-wiggle {
@@ -199,9 +195,9 @@ table.data-table td {
   50% { transform: rotate(1deg) translateY(-4px); }
 }
 @keyframes rr-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(42, 22, 56, 0.45); }
-  70% { box-shadow: 0 0 0 6px rgba(42, 22, 56, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(42, 22, 56, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(30, 58, 138, 0.45); }
+  70% { box-shadow: 0 0 0 6px rgba(30, 58, 138, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(30, 58, 138, 0); }
 }
 @media (prefers-reduced-motion: reduce) {
   .rr-badge,
@@ -236,7 +232,7 @@ table.data-table td {
   background: linear-gradient(120deg, #2193b0, #6dd5ed, #1d4350, #2193b0);
   background-size: 300% 300%;
   animation: wp-shift 14s ease infinite;
-}
+} 
 
 /* Jin users ne "reduce motion" on kiya ho unke liye animation band */
 @media (prefers-reduced-motion: reduce) {

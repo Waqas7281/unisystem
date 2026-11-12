@@ -5,6 +5,7 @@ export const SIDEBAR_CONFIG = {
     { label: "Applications", path: "/applications" },
     { label: "Create Application", path: "/create-application" },
     { label: "Fee Detail", path: "/students?mode=fee" },
+    { label: "Drop of Scholarship", path: "/drop-scholarship" },
     { label: "Students", path: "/students" },
     { label: "Academic Records", path: "/academic-records" },
     { label: "Admission Center", path: "/admission-center" },
