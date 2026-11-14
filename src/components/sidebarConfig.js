@@ -21,6 +21,7 @@ export const SIDEBAR_CONFIG = {
     { label: "Dashboard", path: "/dashboard" },
     { label: "Applications", path: "/applications" },
     { label: "Fee Detail", path: "/students?mode=fee" },
+    { label: "Drop of Scholarship", path: "/drop-scholarship" },
     { label: "Students", path: "/students" },
     { label: "Generate Slip", path: "/clearance-slip" },
     { label: "Search Slip", path: "/slip-lookup" },
