@@ -45,4 +45,22 @@ export const WALLPAPERS = [
     type: "video",
     src: "https://cdn.pixabay.com/video/2025/12/11/321166_large.mp4",
   },
+  {
+    id: "CPU chip 1",
+    name: "computer",
+    type: "video",
+    src: "https://cdn.pixabay.com/video/2025/10/22/311332_large.mp4",
+  },
+  {
+    id: "CPU chip 2",
+    name: "computer",
+    type: "video",
+    src: "https://cdn.pixabay.com/video/2025/10/28/312510_large.mp4",
+  },
+  {
+    id: "CPU chip 3",
+    name: "computer",
+    type: "video",
+    src: "https://cdn.pixabay.com/video/2025/10/23/311617_tiny.jpg",
+  },
 ];
