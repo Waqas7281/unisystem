@@ -39,4 +39,10 @@ export const WALLPAPERS = [
     type: "video",
     src: "https://cdn.pixabay.com/video/2025/10/23/311619_large.mp4",
   },
+  {
+    id: "computer",
+    name: "computer",
+    type: "video",
+    src: "https://cdn.pixabay.com/video/2025/12/11/321166_large.mp4",
+  },
 ];
