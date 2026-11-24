@@ -15,24 +15,7 @@ export const WALLPAPERS = [
   { id: "ocean", name: "Ocean", type: "css", className: "wp-ocean" },
 
   // Videos — apni files rakhne ke baad naam theek kar lein
-  {
-    id: "tanjiro",
-    name: "Tanjiro — Red Moon",
-    type: "video",
-    src: "https://mylivewallpapers.com/wp-content/uploads/Anime/PREVIEW-Tanjiro-Red-Moon.mp4",
-  },
-  {
-    id: "todoroki",
-    name: "Todoroki — Fire & Ice",
-    type: "video",
-    src: "https://mylivewallpapers.com/wp-content/uploads/Anime/PREVIEW-Shoto-Todoroki-Fire-and-Ice.mp4",
-  },
-  {
-    id: "corrupted-knight",
-    name: "Corrupted Knight",
-    type: "video",
-    src: "https://mylivewallpapers.com/wp-content/uploads/Fantasy/PREVIEW-Corrupted-Knight.mp4",
-  },
+ 
   {
     id: "computer",
     name: "computer",
@@ -57,10 +40,5 @@ export const WALLPAPERS = [
     type: "video",
     src: "https://cdn.pixabay.com/video/2025/10/28/312510_large.mp4",
   },
-  {
-    id: "CPU chip 3",
-    name: "computer",
-    type: "video",
-    src: "https://cdn.pixabay.com/video/2025/10/23/311617_tiny.jpg",
-  },
+
 ];
